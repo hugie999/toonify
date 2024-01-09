@@ -5,8 +5,16 @@ remember to use a token and always practice safe requesting"""
 #this is my first python module please be nice😥
 
 import requests
+import base64
 
-__version__ = '0.0.1'
+__version__ = '0.0.2'
+
+def loadImage(url:str) -> bytes:
+    "this litterally returns a png so be prepared"
+    newurl = "https://webtoon-phinf.pstatic.net/"+url
+    #fuck you webtoon
+    resp = requests.get(newurl,headers={'User-agent': 'Mozilla/5.0 (Linux; Android 8.1.0; Mi MIX 2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Mobile Safari/537.36','Referer':'http://m.webtoons.com/'})# <- teh secret sauce
+    return resp.content
 
 class webtoonImage():
     def __init__(self,raw:dict) -> None:
@@ -28,6 +36,13 @@ class webtoonImage():
         """-> [width,height] <-"""
     def __str__(self) -> str:
         return self.url
+    @property
+    def imgdata(self) -> bytes:
+        return loadImage(self.url)
+    @property
+    def imgb64(self)  -> str:
+        return base64.encodebytes(loadImage(self.url)).decode().replace("\n","")
+    
 class episode():
     def __init__(self,raw:dict) -> None:
         """its like the other episode class but with images
@@ -47,9 +62,6 @@ class episode():
         for i in raw["imageInfo"]:
             self.images.append(webtoonImage(i))
         
-
-
-
 class headerInfo():
     def __init__(self,remaining:int,total:int) -> None:
         """represents how many api calls are left
@@ -63,10 +75,12 @@ class headerInfo():
 
 #its up here cus it returns a header info (sorry for the inconsistant placeing)
 class partialEpisode():
-    def __init__(self,raw:dict) -> None:
+    def __init__(self,raw:dict,type:str) -> None:
         """basically just episode class but without the images"""
         self._json = raw
         self.parentID:int    = raw["titleNo"]
+        self.type:str        = type
+        assert type in ["canvas","originals"]
         self.episodeNO:int   = raw["episodeNo"] #i deadass put "136" here originally lmfao
         self.episodeName:str = raw["episodeTitle"]
     def __str__(self) -> str:
@@ -75,25 +89,23 @@ class partialEpisode():
     pass
 
 class episodeList():
-    def __init__(self,raw:dict) -> None:
+    def __init__(self,raw:dict,type) -> None:
         """its the uh... list of episodes"""
         self._json = raw
+        self.type:str        = type
+        assert type in ["canvas","originals"]
         self.totalEpisodes = raw["totalServiceEpisodeCount"]
         self.episodes:list[partialEpisode] = []
+        
         for i in raw["episode"]:
-            self.episodes.append(partialEpisode(i))
+            self.episodes.append(partialEpisode(i,type))
     def __str__(self) -> str:
         return str(self.episodes)
 
-def loadImage(url:str) -> bytes:
-    "this litterally returns a png so be prepared"
-    newurl = "https://webtoon-phinf.pstatic.net/"+url
-    #fuck you webtoon
-    resp = requests.get(newurl,headers={'User-agent': 'Mozilla/5.0 (Linux; Android 8.1.0; Mi MIX 2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Mobile Safari/537.36','Referer':'http://m.webtoons.com/'})# <- teh secret sauce
-    return resp.content
+
 
 class comic():
-    def __init__(self,json:dict) -> None:
+    def __init__(self,json:dict,type="canvas") -> None:
         """yes i know they are called webtoons or webcomics but it would get cofuseing fast if i had a webtoon and webtoonapi class ok?
         protip: just like most of the other classes this one shouldnt be made by your code"""
         self._json      = json
@@ -106,6 +118,9 @@ class comic():
         "the thumbnail for the comic (use loadImage() to load this!)"
         self.isNSFW     = json["ageGradeNotice"]
         """'un actually its called ageGradeNotice🤓'"""
+        self.type       = type
+        assert type in ["canvas","originals"]
+        """either 'canvas' or originals"""
     def __str__(self) -> str:
         return f"name: {self.name}, id: {self.id}, author:{self.author}"
 class search():
@@ -113,6 +128,7 @@ class search():
         """search class that represents a search on webtoon (no duh) 
         (this shouldnt be made in your code only by webtoonapi() if you are makeing this then you should really consifer what choices lead up to this)"""
         self.type  = type
+        assert type in ["canvas","originals"]
         self.query = query
         self.start = start
         self.size  = size
@@ -166,7 +182,7 @@ class webtoonapi():
         if type == "originals":
             raise NotImplementedError("originals are not supported at the moment ):")
         params = {"query": query,"startIndex": start,"pageSize": size,"language": self.lang}
-        resp = requests.get(self._defaulturl+"canvas/search", headers=self._defaultheader, params=params).json()["message"] #really good practice totally
+        resp = requests.get(self._defaulturl+type+"/search", headers=self._defaultheader, params=params).json()["message"] #really good practice totally
         if self.verbose:
             print(resp)
         items = []
@@ -176,12 +192,20 @@ class webtoonapi():
         self._latestresp = resp
         return out
     
+    def getComic(self,id:int,type="canvas") -> comic:
+        assert not self.testmode
+        assert type in ["canvas","originals"]
+        
+        resp = requests.get(self._defaulturl+type+"/titles/get-info",{"titleNo":id,"language":self.lang},headers=self._defaultheader).json()["message"]
+        print(resp)
+        return comic(resp["result"]["titleInfo"])
+    
     def loadFullEpisode(self,oldEpisode:partialEpisode) -> episode:
         
 
         params = {"titleNo":oldEpisode.parentID,"episodeNo":oldEpisode.episodeNO,"language":self.lang}
 
-        resp = requests.get(self._defaulturl+"canvas/episodes/get-info", headers=self._defaultheader, params=params)
+        resp = requests.get(self._defaulturl+oldEpisode.type+"/episodes/get-info", headers=self._defaultheader, params=params)
         self._latestresp = resp
         return episode(resp.json()["message"]["result"]["episodeInfo"])
     
@@ -195,7 +219,7 @@ class webtoonapi():
         else:
             comicid = comicToUse
         params = {"titleNo":comicid,"startIndex":startIndex,"language":self.lang,"pageSize":size}
-        req = requests.get(self._defaulturl+"canvas/episodes/list",params,headers=self._defaultheader)
+        req = requests.get(self._defaulturl+comic.type+"/episodes/list",params,headers=self._defaultheader)
         self._latestresp = req
         return episodeList(req.json()["message"]["result"]["episodeList"])
         # "Something went wrong, we know it and trying to fix this Rapidly" - rapidapi 2024
