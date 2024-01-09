@@ -10,15 +10,14 @@ except FileNotFoundError:
     TOKEN = False
 def openInBrowser(link):
     pass
-
 def genEpisodesheet(epname,imgb64:str,ep:wtp.episode) -> ft.BottomSheet:
     if imgb64:
         sheet = ft.BottomSheet(ft.Container(ft.Column([
             ft.Text(epname,size=30,weight=ft.FontWeight.BOLD,max_lines=1),
-            ft.Row([ft.Image(src_base64=imgb64,fit=ft.ImageFit.FIT_HEIGHT,width=500)],alignment=ft.MainAxisAlignment.CENTER),
+            ft.Row([ft.Image(src_base64=imgb64,fit=ft.ImageFit.FIT_WIDTH)],alignment=ft.MainAxisAlignment.CENTER),
             ft.Row([ft.TextButton("view in browser",icon=ft.icons.OPEN_IN_BROWSER_OUTLINED,on_click=lambda a:openInBrowser("")),
             ft.ElevatedButton("read",icon=ft.icons.READ_MORE_OUTLINED)])
-        ],tight=True),padding=10),
+        ],tight=True,scroll=ft.ScrollMode.ADAPTIVE),padding=10),
         open=True,
         show_drag_handle=True,
         enable_drag=True,
@@ -57,7 +56,7 @@ def main(page: ft.Page):
         img = b64.encodebytes(wtp.loadImage(eps._json["thumbnailImageUrl"])).decode("ascii").replace("\n","") #yass
         print(img)
         page.add(ft.Image(src_base64=(img)))
-        c = genEpisodesheet(eps.episodeName,img)
+        c = genEpisodesheet(eps.episodeName,img,eps)
         pr.visible = False
         page.overlay.append(c)
         page.update()
@@ -65,6 +64,6 @@ def main(page: ft.Page):
         c.update()
     
 
-    page.add(tokeninput,ft.Row([comicidinput,episodeidinput,ft.TextButton("submit",on_click=testbuttonaccept)]))
+    page.add(tokeninput,ft.Row([comicidinput,episodeidinput,ft.TextButton("submit",on_click=testbuttonaccept)],scroll=ft.ScrollMode.ADAPTIVE))
     # page.add(ft.Card(ft.Text("hi")))
 ft.app(main)
