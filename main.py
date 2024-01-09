@@ -2,7 +2,12 @@ import flet as ft
 import webtoonpy as wtp
 import base64 as b64
 DEFAULTTEST = 300138
-
+try:
+    f = open("token")
+    TOKEN = f.read()
+    f.close()
+except FileNotFoundError:
+    TOKEN = False
 def openInBrowser(link):
     pass
 
@@ -31,7 +36,10 @@ def genEpisodesheet(epname,imgb64:str,ep:wtp.episode) -> ft.BottomSheet:
 def main(page: ft.Page):
     page.add(ft.SafeArea(ft.Text(f"webtoon api: {wtp.__version__}")))
     page.title = "webtoon test"
-    tokeninput = ft.TextField(label="token:",enable_suggestions=False,hint_text="token",icon=ft.icons.ABC_OUTLINED,password=True,can_reveal_password=True)
+    if TOKEN:
+        tokeninput = ft.TextField(label="token:",enable_suggestions=False,hint_text="1234567890abcdefghijklmnopqrstuvwxyz",icon=ft.icons.ABC_OUTLINED,password=True,can_reveal_password=False,value=TOKEN,read_only=True)
+    else:
+        tokeninput = ft.TextField(label="token:",enable_suggestions=False,hint_text="token",icon=ft.icons.ABC_OUTLINED,password=True,can_reveal_password=True)
     comicidinput = ft.TextField(label="comic id:",value="300138",enable_suggestions=False,hint_text="0000000000",icon=ft.icons.BOOK_OUTLINED,input_filter=ft.NumbersOnlyInputFilter())
     episodeidinput = ft.TextField(label="episode id:",value="0",enable_suggestions=False,hint_text="000",icon=ft.icons.NUMBERS_ROUNDED,input_filter=ft.NumbersOnlyInputFilter())
     
