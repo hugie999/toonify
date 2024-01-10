@@ -209,18 +209,19 @@ class webtoonapi():
         self._latestresp = resp
         return episode(resp.json()["message"]["result"]["episodeInfo"])
     
-    def getEpisodes(self,comicToUse:[comic,int],startIndex=0,size=20):
+    def getEpisodes(self,comicToUse:[comic,int],startIndex=0,size=20,typeOfComic="canvas"):
         """returns episodes (reminder that episodes are returned in reverse order (last to first) so be carefulas)"""
         assert size <= 20
         assert startIndex >= 0
         assert type(comicToUse) in [comic,int]
         if type(comicToUse) == comic:
             comicid = comic.id
+            typeOfComic = comic.type
         else:
             comicid = comicToUse
         params = {"titleNo":comicid,"startIndex":startIndex,"language":self.lang,"pageSize":size}
-        req = requests.get(self._defaulturl+comic.type+"/episodes/list",params,headers=self._defaultheader)
+        req = requests.get(self._defaulturl+typeOfComic+"/episodes/list",params,headers=self._defaultheader)
         self._latestresp = req
-        return episodeList(req.json()["message"]["result"]["episodeList"])
+        return episodeList(req.json()["message"]["result"]["episodeList"],typeOfComic)
         # "Something went wrong, we know it and trying to fix this Rapidly" - rapidapi 2024
 
