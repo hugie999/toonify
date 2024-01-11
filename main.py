@@ -128,14 +128,14 @@ def main(page: ft.Page):
         tokeninput = ft.TextField(label="token:",enable_suggestions=False,hint_text="token",icon=ft.icons.ABC_OUTLINED,password=True,can_reveal_password=True)
     comicidinput = ft.TextField(label="comic id:",value="300138",enable_suggestions=False,hint_text="0000000000",icon=ft.icons.BOOK_OUTLINED,input_filter=ft.NumbersOnlyInputFilter())
     episodeidinput = ft.TextField(label="episode id:",value="0",enable_suggestions=False,hint_text="000",icon=ft.icons.NUMBERS_ROUNDED,input_filter=ft.NumbersOnlyInputFilter())
-    
+    comictypeinput = ft.RadioGroup(content=ft.Row([ft.Radio(value="originals",label="originals"),ft.Radio(value="canvas",label="canvas")]))
     def testbuttonaccept(e):
         pr = ft.ProgressRing()
         page.add(pr)#ft.Column([ft.Row([pr],vertical_alignment=ft.CrossAxisAlignment.CENTER)],horizontal_alignment=ft.CrossAxisAlignment.CENTER))
         print("a")
         
         wb = wtp.webtoonapi(tokeninput.value)
-        ep = wb.getEpisodes(comicToUse=int(comicidinput.value),startIndex=int(episodeidinput.value),size=1)
+        ep = wb.getEpisodes(comicToUse=int(comicidinput.value),startIndex=int(episodeidinput.value),size=1,typeOfComic=comictypeinput.value)
         print(ep)
         print(ep.episodes[0].episodeName)
         eps = ep.episodes[0]
@@ -151,6 +151,6 @@ def main(page: ft.Page):
         c.update()
     
 
-    page.add(tokeninput,ft.Row([comicidinput,episodeidinput,ft.TextButton("submit",on_click=testbuttonaccept)],scroll=ft.ScrollMode.ADAPTIVE))
+    page.add(tokeninput,comictypeinput,ft.Row([comicidinput,episodeidinput,ft.TextButton("submit",on_click=testbuttonaccept)],scroll=ft.ScrollMode.ADAPTIVE))
     # page.add(ft.Card(ft.Text("hi")))
 ft.app(main)
