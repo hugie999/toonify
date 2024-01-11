@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import os
 print("select build target...")
 print("1. android (apk)")
