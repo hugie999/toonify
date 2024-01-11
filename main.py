@@ -17,7 +17,10 @@ except FileNotFoundError:
 def openInBrowser(link):
     pass
 
-def readepisode(ep:wtp.episode,page:ft.Page,pep:wtp.partialEpisode):
+def loadAsB64(url:str) -> str:
+    return b64.encodebytes(wtp.loadImage(url)).decode('ascii').replace("\n","")
+
+def readepisode(ep:wtp.episode,page:ft.Page,pep:wtp.partialEpisode,progress:ft.ProgressRing):
     # def closealert():
     #     page.banner.open = False
     #     page.update()
@@ -33,6 +36,7 @@ def readepisode(ep:wtp.episode,page:ft.Page,pep:wtp.partialEpisode):
     view = ft.View("/read",[ft.Text("original images copyright to respective authors")],scroll=ft.ScrollMode.ADAPTIVE)#,scroll=ft.ScrollMode.ALWAYS)
 
     images = ft.Column([],scroll=ft.ScrollMode.ALWAYS,spacing=0,alignment=ft.MainAxisAlignment.CENTER)
+    progress.value = 0
     for i in ep.images:
         # imgb64 = i.imgb64
         img = imgs[0]
@@ -42,6 +46,9 @@ def readepisode(ep:wtp.episode,page:ft.Page,pep:wtp.partialEpisode):
         images.controls.append(ft.Image(src_base64=img,fit=ft.ImageFit.FIT_WIDTH))
         # print(img)
         print(f"getting image: {i.order}")
+        progress.value += 1.0/len(ep.images)
+        progress.update()
+    progress.value = None
     # print(images)
     view.controls.append(images)
     # view.controls.append(exitbutton)
@@ -80,13 +87,13 @@ def genEpisodesheet(epname,imgb64:str,ep:wtp.partialEpisode,wb:wtp.webtoonapi) -
         sheet.update()
         epf = wb.loadFullEpisode(ep)
 
-        readepisode(epf,e.page,ep)
+        readepisode(epf,e.page,ep,prg)
         prg.visible=False
         # sheet.update()
     if imgb64:
         sheet = ft.BottomSheet(ft.Container(ft.Column([
             ft.Text(epname,size=30,weight=ft.FontWeight.BOLD,max_lines=1),
-            ft.Row([ft.Image(src_base64=imgb64,fit=ft.ImageFit.FIT_WIDTH)]),#,alignment=ft.MainAxisAlignment.CENTER),
+            ft.Image(src_base64=imgb64,fit=ft.ImageFit.SCALE_DOWN),#,alignment=ft.MainAxisAlignment.CENTER),
             ft.Row([ft.TextButton("view in browser",icon=ft.icons.OPEN_IN_BROWSER_OUTLINED,on_click=lambda a:openInBrowser("")),
             ft.OutlinedButton("read",icon=ft.icons.READ_MORE_OUTLINED,on_click=readclick)])
         ],tight=True,scroll=ft.ScrollMode.ADAPTIVE),padding=10),
@@ -107,10 +114,93 @@ def genEpisodesheet(epname,imgb64:str,ep:wtp.partialEpisode,wb:wtp.webtoonapi) -
     # print(f"used: {wb.getRequestAmount().requestsUsed})")#/{wb.getRequestAmount().totalAvalible}")
     return sheet
 
+def genComicsheet(com:wtp.comic,wtb:wtp.webtoonapi) -> ft.BottomSheet:
+    print(type(com))
+    print(com.id)
+    print(com.epNum)
+    epnumpicker = ft.TextField(hint_text="001",value="",label="episode:",input_filter=ft.NumbersOnlyInputFilter())
+    def readclick(e:ft.ControlEvent):
+        prg = ft.ProgressRing()
+        sheet.content.content.controls[2].controls.append(prg)
+        sheet.update()
+        print(f"total: {com.epNum}")
+        print(f"ep   : {(com.epNum)-int(epnumpicker.value)}")
+        print(f"rawep: {epnumpicker.value}")
+        ep = wtb.getEpisodes(com,(com.epNum+1)-int(epnumpicker.value)-1,1).episodes[0]
+        e.page.add(
+            genEpisodesheet(ep.episodeName,loadAsB64(ep.thumbnail),ep,wtb)
+        )
+        prg.visible=False
+        # sheet.update()
+    # if imgb64:
+    imgb64 = b64.encodebytes(wtp.loadImage(com.previewImg)).decode('ascii').replace("\n","")
+    com.epNum
+    sheet = ft.BottomSheet(ft.Container(ft.Column([
+        ft.Text(com.name,size=30,weight=ft.FontWeight.BOLD,max_lines=1),
+        ft.Image(src_base64=imgb64,fit=ft.ImageFit.SCALE_DOWN),#,alignment=ft.MainAxisAlignment.CENTER),
+        ft.Row([
+        # ft.TextButton("view in browser",icon=ft.icons.OPEN_IN_BROWSER_OUTLINED,on_click=lambda a:openInBrowser("")),
+        ft.OutlinedButton("read",icon=ft.icons.READ_MORE_OUTLINED,on_click=readclick),
+        epnumpicker,
+        ft.Text(f"/{com.epNum}")])
+    ],tight=True,scroll=ft.ScrollMode.ADAPTIVE),padding=10),
+    open=True,
+    show_drag_handle=True,
+    enable_drag=True,
+    is_scroll_controlled=True)
+    # else:
+    #     sheet = ft.BottomSheet(ft.Container(ft.Column([
+    #         ft.Text(epname),
+    #         ft.Image(src='icon.png')
+    #     ],tight=True),padding=10),
+    #     open=True,
+    #     show_drag_handle=True,
+    #     enable_drag=True,
+    #     is_scroll_controlled=True)
+    
+    # print(f"used: {wb.getRequestAmount().requestsUsed})")#/{wb.getRequestAmount().totalAvalible}")
+    return sheet
+
+def genComicCard(comic:wtp.comic, wb) -> ft.Card:
+    def containerclicked(e:ft.ControlEvent):
+        print("clicked me!")
+        e.page.add(genComicsheet(comic,wb))
+
+        pass
+    return ft.Container(
+        ft.Row([
+            ft.Image(src_base64=b64.encodebytes(wtp.loadImage(comic.previewImg)).decode('ascii').replace("\n",""),fit=ft.ImageFit.SCALE_DOWN,width=64,height=64,border_radius=20),
+            ft.Column([
+                ft.Text(comic.name),
+                ft.Text(f"by: {comic.author}")
+    ])
+    ]),
+    bgcolor=ft.colors.GREEN_900,
+    margin=5,
+    padding=10,
+    border_radius=20,
+    on_click=containerclicked,
+    ink=True
+    )
+
+def genSearchSheet(wb:wtp.webtoonapi,search:str,page:ft.Page):
+    search = wb.doSearch(search)
+
 def main(page: ft.Page):
+
+    #note to self: this -> 1435 <- is the comic for testing originals
+
+    page.theme = ft.Theme(color_scheme_seed="green",color_scheme=ft.ColorScheme(ft.colors.GREEN))
+    print(page.theme)
+    print(page.theme.color_scheme)
+    page.update()
     # page.views.append(ft.View("/h",[ft.Text("a")]))
     # page.views.pop()
+    def search(e):
+        pass
     img = imgs[0]
+    searcher = ft.SearchBar(bar_hint_text="search webtoons...")
+    page.add(searcher)
     # page.add(ft.Image(src_base64=img,fit=ft.ImageFit.CONTAIN))
     # page.add(ft.Image(src_base64=img,fit=ft.ImageFit.COVER))
     # page.add(ft.Image(src_base64=img,fit=ft.ImageFit.FILL))
@@ -120,6 +210,7 @@ def main(page: ft.Page):
     # page.add(ft.Image(src_base64=img,fit=ft.ImageFit.SCALE_DOWN))
     page.scroll = True
     # page.add(ft.ElevatedButton(ft.Text("test",expand=True)))
+    page.add()
     page.add(ft.SafeArea(content=ft.Text(f"webtoon api: {wtp.__version__}")))
     page.title = "webtoon test"
     if TOKEN:
@@ -127,7 +218,7 @@ def main(page: ft.Page):
     else:
         tokeninput = ft.TextField(label="token:",enable_suggestions=False,hint_text="token",icon=ft.icons.ABC_OUTLINED,password=True,can_reveal_password=True)
     comicidinput = ft.TextField(label="comic id:",value="300138",enable_suggestions=False,hint_text="0000000000",icon=ft.icons.BOOK_OUTLINED,input_filter=ft.NumbersOnlyInputFilter())
-    episodeidinput = ft.TextField(label="episode id:",value="0",enable_suggestions=False,hint_text="000",icon=ft.icons.NUMBERS_ROUNDED,input_filter=ft.NumbersOnlyInputFilter())
+    episodeidinput = ft.TextField(label="episode id:",value="0",enable_suggestions=False,hint_text="000",icon=ft.icons.NUMBERS_ROUNDED,input_filter=ft.NumbersOnlyInputFilter(),disabled=True)
     comictypeinput = ft.RadioGroup(content=ft.Row([ft.Radio(value="originals",label="originals"),ft.Radio(value="canvas",label="canvas")]))
     def testbuttonaccept(e):
         pr = ft.ProgressRing()
@@ -135,22 +226,26 @@ def main(page: ft.Page):
         print("a")
         
         wb = wtp.webtoonapi(tokeninput.value)
+        comic = wb.getComic(comicidinput.value,type=comictypeinput.value)
+        page.add(genComicCard(comic,wb))
+        return
         ep = wb.getEpisodes(comicToUse=int(comicidinput.value),startIndex=int(episodeidinput.value),size=1,typeOfComic=comictypeinput.value)
         print(ep)
         print(ep.episodes[0].episodeName)
         eps = ep.episodes[0]
-        page.add(ft.Text(eps.episodeName))
+        # page.add(ft.Text(eps.episodeName))
         img = b64.encodebytes(wtp.loadImage(eps._json["thumbnailImageUrl"])).decode("ascii").replace("\n","") #yass
         print(img)
-        page.add(ft.Image(src_base64=(img)))
+        # page.add(ft.Image(src_base64=(img)))
         c = genEpisodesheet(eps.episodeName,img,eps,wb=wb)
         pr.visible = False
         page.overlay.append(c)
         page.update()
         c.open = True
         c.update()
+        
     
 
-    page.add(tokeninput,comictypeinput,ft.Row([comicidinput,episodeidinput,ft.TextButton("submit",on_click=testbuttonaccept)],scroll=ft.ScrollMode.ADAPTIVE))
+    page.add(tokeninput,comictypeinput,ft.Divider(),ft.Text("manual",size=30),ft.Row([comicidinput,episodeidinput,ft.TextButton("submit",on_click=testbuttonaccept)],scroll=ft.ScrollMode.ADAPTIVE))
     # page.add(ft.Card(ft.Text("hi")))
 ft.app(main)

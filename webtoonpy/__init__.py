@@ -83,6 +83,7 @@ class partialEpisode():
         assert type in ["canvas","originals"]
         self.episodeNO:int   = raw["episodeNo"] #i deadass put "136" here originally lmfao
         self.episodeName:str = raw["episodeTitle"]
+        self.thumbnail:str   = raw["thumbnailImageUrl"]
     def __str__(self) -> str:
         return f"name: {self.episodeName}, no: {self.episodeNO}, parent: {self.parentID}"
     
@@ -121,6 +122,7 @@ class comic():
         self.type       = type
         assert type in ["canvas","originals"]
         """either 'canvas' or originals"""
+        self.epNum = json["totalServiceEpisodeCount"]
     def __str__(self) -> str:
         return f"name: {self.name}, id: {self.id}, author:{self.author}"
 class search():
@@ -209,19 +211,25 @@ class webtoonapi():
         self._latestresp = resp
         return episode(resp.json()["message"]["result"]["episodeInfo"])
     
-    def getEpisodes(self,comicToUse:[comic,int],startIndex=0,size=20,typeOfComic="canvas"):
+    def getEpisodes(self,comicToUse:[comic,int],startIndex=0,size=20,typeOf:str="canvas"):
         """returns episodes (reminder that episodes are returned in reverse order (last to first) so be carefulas)"""
         assert size <= 20
         assert startIndex >= 0
         assert type(comicToUse) in [comic,int]
+        assert typeOf in ["canvas","originals"]
         if type(comicToUse) == comic:
-            comicid = comic.id
-            typeOfComic = comic.type
+            comicid = comicToUse.id
+            typeOf  = comicToUse.type
         else:
             comicid = comicToUse
         params = {"titleNo":comicid,"startIndex":startIndex,"language":self.lang,"pageSize":size}
-        req = requests.get(self._defaulturl+typeOfComic+"/episodes/list",params,headers=self._defaultheader)
+        req = requests.get(self._defaulturl+typeOf+"/episodes/list",params,headers=self._defaultheader)
         self._latestresp = req
-        return episodeList(req.json()["message"]["result"]["episodeList"],typeOfComic)
+        try:
+            return episodeList(req.json()["message"]["result"]["episodeList"],typeOf)
+        except KeyError:
+            print("error with json!:")
+            print(req.json())
+            raise KeyError
         # "Something went wrong, we know it and trying to fix this Rapidly" - rapidapi 2024
 
