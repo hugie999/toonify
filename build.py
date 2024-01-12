@@ -17,10 +17,12 @@ if int(sel) == 1:
     f.close()
     command = "".join([
         "flet build apk ",
-        "--project betterwebtoon ",
-        "--product betterwebtoon ",
+        "--project Toonify ",
+        "--product Toonify ",
         "--copyright mitLicense ",
-        "-vv"
+        "-vv ",
+        f"--build-version {version} ",
+        "--org ca.hugie999"
     ])
     os.system(command)
 elif int(sel) == 2:
