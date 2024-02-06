@@ -1,11 +1,16 @@
 #!/usr/bin/python3
 import os
-print("select build target...")
+import requests
+import pathlib
+import zipfile
+import io
+print("select option...")
 print("1. android (apk)")
 print("2. web")
 print("3. pack")
-sel = input("[1-3]:")
-if sel in ["1","2","3"]:
+print("4. download dependancys")
+sel = input("[1-4]:")
+if sel in ["1","2","3","4"]:
     pass
 else:
     print("bad selection!")
@@ -26,6 +31,22 @@ if int(sel) == 1:
     ])
     os.system(command)
 elif int(sel) == 2:
-    pass
+    raise NotImplementedError
 elif int(sel) == 3:
     os.system("flet pack main.py")
+elif int(sel) == 4:
+    print("not implemented yet sorry")
+    raise NotImplementedError
+    #fix later
+    print("please wait...")
+    tempdir = pathlib.Path("./temp/")
+    if not tempdir.is_dir():
+        tempdir.mkdir()
+    print("getting FletNavigator... (v2.5.5) (https://github.com/xzripper/flet_navigator/archive/refs/tags/v2.5.5.zip)")
+    req = requests.get("https://github.com/xzripper/flet_navigator/archive/refs/tags/v2.5.5.zip").content
+    zip = zipfile.ZipFile(io.BytesIO(req))
+    print(zip.filelist)
+    print("extract...")
+    zip.extract(zip.getinfo("flet_navigator-2.5.5/flet_navigator/__init__.py"),"./extradepends/flet_navigator/")
+    
+    
