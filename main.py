@@ -5,13 +5,13 @@ import time
 import base64 as b64
 import webtoonpy as wtp
 import extradepends.flet_navigator as fletnav #flet navigator
+print("====>app start<====")
 imgs = ["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"]
 #python budy i love you but f*cking hate how globals work
 #tokeninput = ft.TextField #PLEASE DONT FUCKING USE THIS
 token = ""
 
 DEFAULTTEST = 300138
-
 preferences = {} #to be used later
 
 # wb = wtp.webtoonapi(tokeninput.value)
@@ -190,13 +190,40 @@ def genSearchSheet(wb:wtp.webtoonapi,search:str,page:ft.Page):
 
 @fletnav.route(fletnav.ROUTE_404)
 def route_404(pg: fletnav.PageData):
-    pg.add(ft.Text("uh oh that dosent seem right😢 (404)"))
+    pg.add(ft.SafeArea(ft.Text("uh oh that dosent seem right😢 (404)"),expand=True))
     print(f"404 page!: {pg.navigator.route}")
+
+@fletnav.route("/errorPage")
+def errorPage(pg:fletnav.PageData):
+    print("ERROR PAGE: ",pg.arguments)
+    if pg.arguments == ["readError1"]:
+        pg.add(ft.SafeArea(ft.Row([
+            ft.Icon(ft.icons.ERROR_OUTLINE),
+            ft.Text("uh oh thare was an error!")
+        ])))
+        pg.add(ft.Icon(ft.icons.INFO_OUTLINE))
+        pg.add(ft.Text("no arguments for read route"))
+    elif pg.arguments == ["notReadyYet1"]:
+        pg.add(ft.SafeArea(ft.Row([
+            ft.Icon(ft.icons.ERROR_OUTLINE),
+            ft.Text("sorry searching is'nt ready yet :(")
+        ])))
+    else:
+        pg.add(ft.SafeArea(ft.Row([
+            ft.Icon(ft.icons.ERROR_OUTLINE),
+            ft.Text("uh oh thare was an error!")
+        ])))
+    pg.add(ft.ElevatedButton("Home",on_click=lambda _:pg.navigator.navigate_homepage(pg.page)))
 
 @fletnav.route("/read")
 def readPage(pg:fletnav.PageData):
+    
     # print(pg.arguments)
     imgConts = []
+    if not pg.arguments:
+        pg.navigator.navigate("/errorPage",pg.page,["readError1"])
+        return
+    # pg.add(ft.SafeArea())
     def exitEpisode(e):
         pg.navigator.navigate(pg.previous_page,pg.page)
     print(len(pg.arguments))
@@ -204,12 +231,26 @@ def readPage(pg:fletnav.PageData):
     images = ft.Column([],spacing=0)
     for i in pg.arguments[0]:
         images.controls.append(ft.Image(src_base64=i,fit=ft.ImageFit.FILL))
-    pg.add(images)
+    pg.add(ft.SafeArea(images))
     pg.page.floating_action_button = ft.FloatingActionButton(icon=ft.icons.EXIT_TO_APP_OUTLINED,on_click=exitEpisode,tooltip="exit the episode")
     pg.page.update()
 
+@fletnav.route("/search")
+def searchPage(pg:fletnav.PageData):
+    # pg.navigator.navigate("/errorPage",pg.page,["notReadyYet1"])
+    pg.set_appbar(ft.AppBar(leading=ft.Icon(ft.icons.SEARCH),title=ft.Text("Search"),elevation=10,actions=[ft.IconButton(ft.icons.ARROW_BACK,on_click=lambda _:pg.navigator.navigate("/",pg.page))]))
+
+
 @fletnav.route("/debugpg")
 def debugPage(pg:fletnav.PageData):
+    # pg.add(ft.SafeArea())
+    
+    pg.set_appbar(ft.AppBar(
+            leading=ft.Icon(ft.icons.TERMINAL),
+            title=ft.Text("debug"),
+            elevation=10,
+            actions=[ft.IconButton(ft.icons.ARROW_BACK,on_click=lambda _:pg.navigator.navigate("/",pg.page))]
+        ))
     comicidinput = ft.TextField(label="comic id:",value="300138",enable_suggestions=False,hint_text="0000000000",icon=ft.icons.BOOK_OUTLINED,input_filter=ft.NumbersOnlyInputFilter())
     episodeidinput = ft.TextField(label="episode id:",value="0",enable_suggestions=False,hint_text="000",icon=ft.icons.NUMBERS_ROUNDED,input_filter=ft.NumbersOnlyInputFilter(),disabled=True)
     comictypeinput = ft.RadioGroup(content=ft.Row([ft.Radio(value="originals",label="originals"),ft.Radio(value="canvas",label="canvas")]))
@@ -236,10 +277,33 @@ def debugPage(pg:fletnav.PageData):
         pg.page.update()
         c.open = True
         c.update()
-        
+    # logsSheet = ft.BottomSheet()
+    isLogFile = True
+    try:
+        with open("out.log") as logFile:
+            logsSheet = ft.BottomSheet(ft.TextField(value=logFile.read(),multiline=True,read_only=True),is_scroll_controlled=True)
+            pg.add(logsSheet)
+    except:
+        isLogFile = False
+        def closeMe(e):
+            logError.open = False
+            logError.update()
+        logError = ft.AlertDialog(title=ft.Text("No log file!"),content=ft.Text("You might be running from the python file directly"),actions=[ft.TextButton("ok!",on_click=closeMe)])
+        pg.add(logError)
+    
     
     # print("a")
-    pg.add(comictypeinput,ft.Divider(),ft.Text("manual",size=30),ft.Row([comicidinput,episodeidinput,ft.TextButton("submit",on_click=testbuttonaccept)],scroll=ft.ScrollMode.ADAPTIVE))
+    pg.add(ft.SafeArea(comictypeinput),ft.Divider(),ft.Text("manual",size=30),ft.Row([comicidinput,episodeidinput,ft.TextButton("submit",on_click=testbuttonaccept)],scroll=ft.ScrollMode.ADAPTIVE))
+    def openLogSheet(e):
+        print("open!")
+        if isLogFile:
+            logsSheet.open = True
+            logsSheet.update()
+        else:
+            logError.open = True
+            logError.update()
+            
+    pg.add(ft.ElevatedButton("logs",on_click=openLogSheet))
     pg.page.update()
 
 # @fletnav.route("read")
@@ -248,19 +312,52 @@ def debugPage(pg:fletnav.PageData):
 
 @fletnav.route("/")
 def homePage(pg:fletnav.PageData):
-    pg.add(ft.Row([ft.Icon(ft.icons.INFO,color=ft.colors.BLUE_400),ft.Text("looks like thares nothing here... ):")]))
-    pg.add(ft.Row([
-        ft.ElevatedButton("go!",on_click=lambda _:pg.navigator.navigate("/read",pg.page,[0])),
-        ft.ElevatedButton("debug!",on_click=lambda _:pg.navigator.navigate("/debugpg",pg.page,[0]))]
-                  ))
-
-def main(page: ft.Page):
+    print(f"dimentions 2: [{pg.page.width},{pg.page.height},{pg.page.window_width},{pg.page.window_height}]")
     
+    pg.page.floating_action_button = None
+    # pg.page.views.clear()
+    print(pg.page.views)
+    pg.page.scroll = True
+    pg.set_appbar(ft.AppBar(leading=ft.Icon(ft.icons.HOME),title=ft.Text("Home"),elevation=10))
+    pg.add(ft.SafeArea(ft.Row([ft.Icon(ft.icons.INFO,color=ft.colors.BLUE_400),ft.Text("looks like thares nothing here... ):")])))
+    # pg.add(ft.Row([
+    #     ft.ElevatedButton("go!",on_click=lambda _:pg.navigator.navigate("/read",pg.page,[0])),
+    #     ft.ElevatedButton("debug!",on_click=lambda _:pg.navigator.navigate("/debugpg",pg.page,[0]))]
+    #               ))
+    BOXBUTTON = ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20))
+    pg.add(ft.ElevatedButton("Debug2",style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/debugpg",pg.page,[0])))
+    
+    pg.add(
+        ft.Column([
+            ft.ElevatedButton("Search",width=pg.page.width,height=pg.page.height/3,style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/search",pg.page,[0])),
+            ft.ElevatedButton("Debug",width=pg.page.width,height=pg.page.height/8,style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/debugpg",pg.page,[0]))
+        ],
+        scroll=ft.ScrollMode.ALWAYS
+    ))
+    print(pg.page.platform)
+    # if pg.page.platform == "android":
+    
+        
+def main(page: ft.Page):
     TOKEN = page.client_storage.get("ca.hugie999.toonify.token")
     global tokeninput
     global token
     #note to self: this -> 1435 <- is the comic for testing originals
-
+    print(f"dimentions: [{page.width},{page.height},{page.window_width},{page.window_height}]")
+    
+    def debugEvent(e:ft.ControlEvent):
+        print()
+        print(e)
+        print(dir(e))
+        print(e.__dict__)
+        print()
+    
+    
+    # page.on_window_event   = debugEvent
+    # page.on_keyboard_event = debugEvent
+    # page.window_close = debugEvent
+    # page.window_prevent_close = True
+    
     page.theme = ft.Theme(color_scheme_seed="green",color_scheme=ft.ColorScheme(ft.colors.GREEN))
     print(page.theme)
     print(page.theme.color_scheme)
@@ -290,12 +387,13 @@ def main(page: ft.Page):
     tokeninput = ft.TextField(hint_text="abcdefghijklmnopqrstuvwxyz1234567890",label="token:",password=True,can_reveal_password=True,enable_suggestions=False,expand=True)
     def settoken(e:ft.ControlEvent):
         global tokeninput
-        tokenpage.open = False
+        
         # print(e.target)
         print(tokenpage)
         tokeninput.error_text = ""
         tokeninput.update()
         if tokeninput.value:
+            tokenpage.open = False
             page.client_storage.set("ca.hugie999.toonify.token",tokeninput.value)
             snack = ft.SnackBar(ft.Text("Token saved!"),open=True)
             page.add(snack)
@@ -328,17 +426,28 @@ def main(page: ft.Page):
     while tokenpage.open == True:
         time.sleep(1)
     
+    #this is just so back button works on android
+    
     def navSetRoute(e):
-        page.go(e)
+        page.route = e
+        page.update()
+        print("nav route change")
         print(e)
     
     def pageSetRoute(e:ft.RouteChangeEvent):
+        print("page change")
         print(e.route)
-        navigator.navigate(e.route,page)
+        if e.route != page.route:
+            navigator.navigate(e.route,page)
+        print("already in route")
     
-    page.on_route_change = pageSetRoute
-    navigator = fletnav.VirtualFletNavigator(navigator_animation=fletnav.NavigatorAnimation(fletnav.NavigatorAnimation.FADE,fletnav.NavigatorAnimation.SMOOTHNESS_10),route_changed_handler=navSetRoute)
-    
+    def goBack(e):
+        navigator.navigate(navigator._nav_previous_routes[-1],page) #cant do it the normal way ):
+        navigator._nav_previous_routes.pop() #remove ^ so it dosent broke
+    # page.on_route_change = pageSetRoute
+    page.on_view_pop = goBack
+    navigator = fletnav.VirtualFletNavigator(route_changed_handler=navSetRoute) #navigator_animation=fletnav.NavigatorAnimation(fletnav.NavigatorAnimation.FADE,fletnav.NavigatorAnimation.SMOOTHNESS_10),
+    page.views.insert(-1,ft.View("BACKINTERCEPTER",[ft.Text("this should not appear")]))
     # navigator.route_changed_handler
     navigator.render(page)
     
@@ -377,4 +486,5 @@ def main(page: ft.Page):
     page.add(comictypeinput,ft.Divider(),ft.Text("manual",size=30),ft.Row([comicidinput,episodeidinput,ft.TextButton("submit",on_click=testbuttonaccept)],scroll=ft.ScrollMode.ADAPTIVE))
     page.update()
     # page.add(ft.Card(ft.Text("hi")))
+print("ft.app()")
 ft.app(main)

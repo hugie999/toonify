@@ -8,3 +8,6 @@ a material 3 app for browsing webtoon
 3. give app api key
 4. ???
 5. profit
+
+## how to build
+1. give up.
