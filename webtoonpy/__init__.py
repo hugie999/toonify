@@ -117,8 +117,11 @@ class comic():
         self.author     = json["writingAuthorName"]
         self.previewImg = json["thumbnail"]
         "the thumbnail for the comic (use loadImage() to load this!)"
-        self.isNSFW     = json["ageGradeNotice"]
-        """'un actually its called ageGradeNotice🤓'"""
+        try:
+            self.isNSFW     = json["ageGradeNotice"]
+            """'un actually its called ageGradeNotice🤓'"""
+        except KeyError:
+            self.isNSFW = None #should really just make a partialComic class
         self.type       = type
         assert type in ["canvas","originals"]
         """either 'canvas' or originals"""
