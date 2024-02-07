@@ -240,6 +240,31 @@ def searchPage(pg:fletnav.PageData):
     # pg.navigator.navigate("/errorPage",pg.page,["notReadyYet1"])
     pg.set_appbar(ft.AppBar(leading=ft.Icon(ft.icons.SEARCH),title=ft.Text("Search"),elevation=10,actions=[ft.IconButton(ft.icons.ARROW_BACK,on_click=lambda _:pg.navigator.navigate("/",pg.page))]))
 
+    searchBar = ft.TextField(label="Search",icon=ft.icons.SEARCH,expand=True)
+    loadIndicator = ft.ProgressRing()
+    
+    def search(e):
+        print("==> do search <==")
+        if searchBar.value == "":
+            print("no input text!")
+            searchBar.error_text = "Please input text!"
+            searchBar.update()
+            return
+        # searchRow.width = 0
+        searchRow.height = 0
+        searchRow.opacity = 0
+        print(f"query: {searchBar.value}")
+        pg.add(loadIndicator)
+        webtoon = wtp.webtoonapi(token)
+        print("search...")
+        result:wtp.search =  webtoon.doSearch(searchBar.value)
+        for i in result.items:
+            pg.add(genComicCard(i,webtoon,pg))
+            print(i.name)
+    searchRow = ft.Row([searchBar,ft.FilledTonalButton("GO!",on_click=search)],animate_size=ft.Animation(6,ft.AnimationCurve.BOUNCE_IN_OUT),animate_opacity=ft.Animation(6,ft.AnimationCurve.BOUNCE_IN_OUT))
+    pg.add(searchRow)
+    
+    
 
 @fletnav.route("/debugpg")
 def debugPage(pg:fletnav.PageData):
@@ -314,7 +339,7 @@ def debugPage(pg:fletnav.PageData):
 def homePage(pg:fletnav.PageData):
     print(f"dimentions 2: [{pg.page.width},{pg.page.height},{pg.page.window_width},{pg.page.window_height}]")
     
-    pg.page.floating_action_button = None
+    
     # pg.page.views.clear()
     print(pg.page.views)
     pg.page.scroll = True
@@ -440,10 +465,23 @@ def main(page: ft.Page):
         if e.route != page.route:
             navigator.navigate(e.route,page)
         print("already in route")
-    
+    closeForReal = False #this is used bellow to check if the app should close
     def goBack(e):
+        print("android back gesture!")
+        if navigator._nav_previous_routes[-1] == "/":
+            if closeForReal:
+                page.window_close()
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text("Back again to close"),open=True
+            )
+            closeForReal = True
+        else:
+            closeForReal = False
         navigator.navigate(navigator._nav_previous_routes[-1],page) #cant do it the normal way ):
         navigator._nav_previous_routes.pop() #remove ^ so it dosent broke
+        page.floating_action_button = None
+        print(f"prev routes => {navigator._nav_previous_routes}")
+        
     # page.on_route_change = pageSetRoute
     page.on_view_pop = goBack
     navigator = fletnav.VirtualFletNavigator(route_changed_handler=navSetRoute) #navigator_animation=fletnav.NavigatorAnimation(fletnav.NavigatorAnimation.FADE,fletnav.NavigatorAnimation.SMOOTHNESS_10),
