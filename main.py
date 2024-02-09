@@ -217,7 +217,6 @@ def errorPage(pg:fletnav.PageData):
 
 @fletnav.route("/read")
 def readPage(pg:fletnav.PageData):
-    
     # print(pg.arguments)
     imgConts = []
     if not pg.arguments:
@@ -251,16 +250,20 @@ def searchPage(pg:fletnav.PageData):
             searchBar.update()
             return
         # searchRow.width = 0
-        searchRow.height = 0
+        # searchRow.height = 0
         searchRow.opacity = 0
         print(f"query: {searchBar.value}")
         pg.add(loadIndicator)
         webtoon = wtp.webtoonapi(token)
         print("search...")
         result:wtp.search =  webtoon.doSearch(searchBar.value)
+        comics = []
         for i in result.items:
-            pg.add(genComicCard(i,webtoon,pg))
+            comics.append(genComicCard(i,webtoon,pg))
             print(i.name)
+        for i in comics:
+            pg.add(i)
+        loadIndicator.visible = False
     searchRow = ft.Row([searchBar,ft.FilledTonalButton("GO!",on_click=search)],animate_size=ft.Animation(6,ft.AnimationCurve.BOUNCE_IN_OUT),animate_opacity=ft.Animation(6,ft.AnimationCurve.BOUNCE_IN_OUT))
     pg.add(searchRow)
     
@@ -337,6 +340,27 @@ def debugPage(pg:fletnav.PageData):
 
 @fletnav.route("/")
 def homePage(pg:fletnav.PageData):
+    #do this thing
+    def goBack(e):
+        print("android back gesture!")
+        if pg.navigator._nav_previous_routes[-1] == "/":
+            # if closeForReal:
+            #     pg.page.window_close()
+            pg.page.snack_bar = ft.SnackBar(
+                content=ft.Text("Back again to close"),open=True
+            )
+            # closeForReal = True
+        else:
+            pass
+            # closeForReal = False
+        print(f"prev routes ==> {pg.navigator._nav_previous_routes}")
+        pg.navigator.navigate(pg.navigator._nav_previous_routes[-1],pg.page) #cant do it the normal way ):
+        pg.navigator._nav_previous_routes.pop() #remove ^ so it dosent broke
+        pg.page.floating_action_button = None
+        print(f"prev routes2 => {pg.navigator._nav_previous_routes}")
+        
+    pg.page.on_view_pop = goBack
+    
     print(f"dimentions 2: [{pg.page.width},{pg.page.height},{pg.page.window_width},{pg.page.window_height}]")
     
     
@@ -364,6 +388,8 @@ def homePage(pg:fletnav.PageData):
     
         
 def main(page: ft.Page):
+    
+    
     TOKEN = page.client_storage.get("ca.hugie999.toonify.token")
     global tokeninput
     global token
@@ -458,32 +484,20 @@ def main(page: ft.Page):
         page.update()
         print("nav route change")
         print(e)
-    
+        print(navigator._nav_previous_routes)
+        
     def pageSetRoute(e:ft.RouteChangeEvent):
+        
         print("page change")
         print(e.route)
         if e.route != page.route:
             navigator.navigate(e.route,page)
         print("already in route")
     closeForReal = False #this is used bellow to check if the app should close
-    def goBack(e):
-        print("android back gesture!")
-        if navigator._nav_previous_routes[-1] == "/":
-            if closeForReal:
-                page.window_close()
-            page.snack_bar = ft.SnackBar(
-                content=ft.Text("Back again to close"),open=True
-            )
-            closeForReal = True
-        else:
-            closeForReal = False
-        navigator.navigate(navigator._nav_previous_routes[-1],page) #cant do it the normal way ):
-        navigator._nav_previous_routes.pop() #remove ^ so it dosent broke
-        page.floating_action_button = None
-        print(f"prev routes => {navigator._nav_previous_routes}")
-        
-    # page.on_route_change = pageSetRoute
-    page.on_view_pop = goBack
+    
+    
+    # page.on_route_change = pageSetRoute #<== uncomment if your makeing this for a browser
+    
     navigator = fletnav.VirtualFletNavigator(route_changed_handler=navSetRoute) #navigator_animation=fletnav.NavigatorAnimation(fletnav.NavigatorAnimation.FADE,fletnav.NavigatorAnimation.SMOOTHNESS_10),
     page.views.insert(-1,ft.View("BACKINTERCEPTER",[ft.Text("this should not appear")]))
     # navigator.route_changed_handler
