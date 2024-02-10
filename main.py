@@ -14,7 +14,6 @@ token = ""              #token value
 closeAppForReal = False #used at home screen to check wether to close the app
 DEFAULTTEST = 300138    #default value in debug page
 preferences = {}        #to be used later
-
 # wb = wtp.webtoonapi(tokeninput.value)
 
 def openInBrowser(link):
@@ -193,6 +192,7 @@ def genSearchSheet(wb:wtp.webtoonapi,search:str,page:ft.Page):
 def route_404(pg: fletnav.PageData):
     pg.add(ft.SafeArea(ft.Text("uh oh that dosent seem right😢 (404)"),expand=True))
     print(f"404 page!: {pg.navigator.route}")
+    pg.add(ft.TextButton("back",on_click=lambda _: pg.navigator.navigate_homepage(pg.page)))
 
 @fletnav.route("/errorPage")
 def errorPage(pg:fletnav.PageData):
@@ -241,7 +241,7 @@ def searchPage(pg:fletnav.PageData):
     pg.set_appbar(ft.AppBar(leading=ft.Icon(ft.icons.SEARCH),title=ft.Text("Search"),elevation=10,actions=[ft.IconButton(ft.icons.ARROW_BACK,on_click=lambda _:pg.navigator.navigate("/",pg.page))]))
 
     searchBar = ft.TextField(label="Search",icon=ft.icons.SEARCH,expand=True)
-    loadIndicator = ft.ProgressRing()
+    loadIndicator = ft.ProgressBar(animate_size=ft.Animation(1,ft.AnimationCurve.EASE_OUT))
     
     def search(e):
         print("==> do search <==")
@@ -252,21 +252,30 @@ def searchPage(pg:fletnav.PageData):
             return
         # searchRow.width = 0
         # searchRow.height = 0
-        searchRow.opacity = 0
+        searchRow.disabled = True
         print(f"query: {searchBar.value}")
         pg.add(loadIndicator)
         webtoon = wtp.webtoonapi(token)
         print("search...")
-        result:wtp.search =  webtoon.doSearch(searchBar.value)
+        result:wtp.search =  webtoon.doSearch(searchBar.value,type=typePicker.value)
         comics = []
+        
+        loadIndicator.value = 0
         for i in result.items:
             comics.append(genComicCard(i,webtoon,pg))
             print(i.name)
+            print(loadIndicator.value)
+            loadIndicator.value += 1.0/result.size
+            loadIndicator.update()
         for i in comics:
             pg.add(i)
-        loadIndicator.visible = False
+        loadIndicator.value = 1
+        loadIndicator.height = 0
+        loadIndicator.update()
+        # loadIndicator.visible = False
+    typePicker = ft.RadioGroup(ft.Row([ft.Radio(value="originals",label="originals",disabled=True),ft.Radio(value="canvas",label="canvas")],expand=True),value="canvas")
     searchRow = ft.Row([searchBar,ft.FilledTonalButton("GO!",on_click=search)],animate_size=ft.Animation(6,ft.AnimationCurve.BOUNCE_IN_OUT),animate_opacity=ft.Animation(6,ft.AnimationCurve.BOUNCE_IN_OUT))
-    pg.add(searchRow)
+    pg.add(searchRow,typePicker)
     
     
 
@@ -342,32 +351,13 @@ def debugPage(pg:fletnav.PageData):
 @fletnav.route("/")
 def homePage(pg:fletnav.PageData):
     #do this thing
-    def goBack(e):
-        print("android back gesture!")
-        if pg.navigator._nav_previous_routes[-1] == "/":
-            # if closeForReal:
-            #     pg.page.window_close()
-            pg.page.snack_bar = ft.SnackBar(
-                content=ft.Text("Back again to close"),open=True
-            )
-            # closeForReal = True
-        else:
-            pass
-            # closeForReal = False
-        print(f"prev routes ==> {pg.navigator._nav_previous_routes}")
-        pg.navigator.navigate(pg.navigator._nav_previous_routes[-1],pg.page) #cant do it the normal way ):
-        pg.navigator._nav_previous_routes.pop() #remove ^ so it dosent broke
-        pg.page.floating_action_button = None
-        print(f"prev routes2 => {pg.navigator._nav_previous_routes}")
-        
-    pg.page.on_view_pop = goBack
     
     print(f"dimentions 2: [{pg.page.width},{pg.page.height},{pg.page.window_width},{pg.page.window_height}]")
     
     
     # pg.page.views.clear()
     print(pg.page.views)
-    pg.page.scroll = True
+    pg.page.scroll = False
     pg.set_appbar(ft.AppBar(leading=ft.Icon(ft.icons.HOME),title=ft.Text("Home"),elevation=10))
     pg.add(ft.SafeArea(ft.Row([ft.Icon(ft.icons.INFO,color=ft.colors.BLUE_400),ft.Text("looks like thares nothing here... ):")])))
     # pg.add(ft.Row([
@@ -375,11 +365,12 @@ def homePage(pg:fletnav.PageData):
     #     ft.ElevatedButton("debug!",on_click=lambda _:pg.navigator.navigate("/debugpg",pg.page,[0]))]
     #               ))
     BOXBUTTON = ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20))
-    pg.add(ft.ElevatedButton("Debug2",style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/debugpg",pg.page,[0])))
+    # pg.add(ft.ElevatedButton("Debug2",style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/debugpg",pg.page,[0]))) <- this is from when i forgor that you cant use expand on buttons on mobile for some reason
     
     pg.add(
         ft.Column([
             ft.ElevatedButton("Search",width=pg.page.width,height=pg.page.height/3,style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/search",pg.page,[0])),
+            ft.ElevatedButton("Settings",width=pg.page.width,height=pg.page.height/8,style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/setup",pg.page,[0])),
             ft.ElevatedButton("Debug",width=pg.page.width,height=pg.page.height/8,style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/debugpg",pg.page,[0]))
         ],
         scroll=ft.ScrollMode.ALWAYS
@@ -403,7 +394,6 @@ def main(page: ft.Page):
         print(dir(e))
         print(e.__dict__)
         print()
-    
     
     # page.on_window_event   = debugEvent
     # page.on_keyboard_event = debugEvent
@@ -494,8 +484,31 @@ def main(page: ft.Page):
         if e.route != page.route:
             navigator.navigate(e.route,page)
         print("already in route")
-    closeForReal = False #this is used bellow to check if the app should close
-    
+    def goBack(e):
+        global closeAppForReal
+        print("android back gesture!")
+        if navigator.route == "/":
+            if closeAppForReal:
+                print("kill it!")
+                page.window_destroy()
+            else:
+                print("close next time")
+                closeAppForReal = True
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text("Back again to close"),open=True
+            )
+            # closeForReal = True
+        else:
+            pass
+            # closeForReal = False
+        print(navigator._nav_previous_routes[-1])
+        print(f"prev routes ==> {navigator._nav_previous_routes}")
+        navigator.navigate(navigator._nav_previous_routes[-1],page) #cant do it the normal way ):
+        navigator._nav_previous_routes.pop() #remove ^ so it dosent broke
+        page.floating_action_button = None
+        print(f"prev routes2 => {navigator._nav_previous_routes}")
+        page.update()
+    page.on_view_pop = goBack
     
     # page.on_route_change = pageSetRoute #<== uncomment if your makeing this for a browser
     
