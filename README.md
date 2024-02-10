@@ -10,4 +10,6 @@ a material 3 app for browsing webtoon
 5. profit
 
 ## how to build
-1. give up.
+1. install dependencys (guide coming soon)
+2. run build.py
+3. wait
