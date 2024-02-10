@@ -13,7 +13,7 @@ imgs = ["iVBORw0KGgoAAAANSUhEUgAAAqsAAAGACAMAAAC9RturAAADAFBMVEX///8AAAC6urqvr6+
 token = ""              #token value
 closeAppForReal = False #used at home screen to check wether to close the app
 DEFAULTTEST = 300138    #default value in debug page
-preferences = {}        #to be used later
+preferences = {"themeM2":False}        #to be used later
 # wb = wtp.webtoonapi(tokeninput.value)
 
 def openInBrowser(link):
@@ -142,9 +142,10 @@ def genComicsheet(com:wtp.comic,wtb:wtp.webtoonapi,naviPage:fletnav.PageData) ->
         ft.Image(src_base64=imgb64,fit=ft.ImageFit.SCALE_DOWN),#,alignment=ft.MainAxisAlignment.CENTER),
         ft.Row([
         # ft.TextButton("view in browser",icon=ft.icons.OPEN_IN_BROWSER_OUTLINED,on_click=lambda a:openInBrowser("")),
-        ft.OutlinedButton("read",icon=ft.icons.READ_MORE_OUTLINED,on_click=readclick),
+        
         epnumpicker,
-        ft.Text(f"/{com.epNum}")])
+        ft.Text(f"/{com.epNum}"),]),
+        ft.OutlinedButton("read",icon=ft.icons.READ_MORE_OUTLINED,on_click=readclick)
     ],tight=True,scroll=ft.ScrollMode.ADAPTIVE),padding=10),
     open=True,
     show_drag_handle=True,
@@ -171,7 +172,7 @@ def genComicCard(comic:wtp.comic, wb, pageData:fletnav.PageData) -> ft.Card:
         pass
     return ft.Container(
         ft.Row([
-            ft.Image(src_base64=b64.encodebytes(wtp.loadImage(comic.previewImg)).decode('ascii').replace("\n",""),fit=ft.ImageFit.SCALE_DOWN,width=64,height=64,border_radius=20),
+            ft.Image(src_base64=b64.encodebytes(wtp.loadImage(comic.previewImg)).decode('ascii').replace("\n",""),fit=ft.ImageFit.SCALE_DOWN,width=64,height=64,border_radius=5 if preferences["themeM2"] else 20),
             ft.Column([
                 ft.Text(comic.name),
                 ft.Text(f"by: {comic.author}")
@@ -180,7 +181,7 @@ def genComicCard(comic:wtp.comic, wb, pageData:fletnav.PageData) -> ft.Card:
     bgcolor=ft.colors.GREEN_900,
     margin=5,
     padding=10,
-    border_radius=20,
+    border_radius= 5 if preferences["themeM2"] else 20,
     on_click=containerclicked,
     ink=True
     )
@@ -219,12 +220,14 @@ def errorPage(pg:fletnav.PageData):
 @fletnav.route("/read")
 def readPage(pg:fletnav.PageData):
     # print(pg.arguments)
+    pg.page.scroll = True
     imgConts = []
     if not pg.arguments:
         pg.navigator.navigate("/errorPage",pg.page,["readError1"])
         return
     # pg.add(ft.SafeArea())
     def exitEpisode(e):
+        pg.page.floating_action_button = None
         pg.navigator.navigate(pg.previous_page,pg.page)
     print(len(pg.arguments))
     # print(pg.arguments[0][:40])
@@ -239,7 +242,8 @@ def readPage(pg:fletnav.PageData):
 def searchPage(pg:fletnav.PageData):
     # pg.navigator.navigate("/errorPage",pg.page,["notReadyYet1"])
     pg.set_appbar(ft.AppBar(leading=ft.Icon(ft.icons.SEARCH),title=ft.Text("Search"),elevation=10,actions=[ft.IconButton(ft.icons.ARROW_BACK,on_click=lambda _:pg.navigator.navigate("/",pg.page))]))
-
+    
+    pg.page.scroll = True
     searchBar = ft.TextField(label="Search",icon=ft.icons.SEARCH,expand=True)
     loadIndicator = ft.ProgressBar(animate_size=ft.Animation(1,ft.AnimationCurve.EASE_OUT))
     
@@ -277,7 +281,16 @@ def searchPage(pg:fletnav.PageData):
     searchRow = ft.Row([searchBar,ft.FilledTonalButton("GO!",on_click=search)],animate_size=ft.Animation(6,ft.AnimationCurve.BOUNCE_IN_OUT),animate_opacity=ft.Animation(6,ft.AnimationCurve.BOUNCE_IN_OUT))
     pg.add(searchRow,typePicker)
     
-    
+@fletnav.route("/setup")
+def settingsPage(pg:fletnav.PageData):
+    pg.set_appbar(ft.AppBar(leading=ft.Icon(ft.icons.SETTINGS),title=ft.Text("Settings"),elevation=10,actions=[ft.IconButton(ft.icons.ARROW_BACK,on_click=lambda _:pg.navigator.navigate("/",pg.page))]))
+    def setM2theme(e:ft.ControlEvent):
+        global preferences
+        preferences["themeM2"] = e.data
+        print(e.data)
+        pg.page.theme.use_material3 = not preferences["themeM2"]
+        pg.page.update()
+    pg.add(ft.Switch(label="Material 2 theme:",on_change=setM2theme,value=preferences["themeM2"]))
 
 @fletnav.route("/debugpg")
 def debugPage(pg:fletnav.PageData):
@@ -364,14 +377,17 @@ def homePage(pg:fletnav.PageData):
     #     ft.ElevatedButton("go!",on_click=lambda _:pg.navigator.navigate("/read",pg.page,[0])),
     #     ft.ElevatedButton("debug!",on_click=lambda _:pg.navigator.navigate("/debugpg",pg.page,[0]))]
     #               ))
-    BOXBUTTON = ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20))
+    if preferences["themeM2"]:
+        BOXBUTTON = ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=0))
+    else: 
+        BOXBUTTON = ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20))
     # pg.add(ft.ElevatedButton("Debug2",style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/debugpg",pg.page,[0]))) <- this is from when i forgor that you cant use expand on buttons on mobile for some reason
     
     pg.add(
         ft.Column([
-            ft.ElevatedButton("Search",width=pg.page.width,height=pg.page.height/3,style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/search",pg.page,[0])),
-            ft.ElevatedButton("Settings",width=pg.page.width,height=pg.page.height/8,style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/setup",pg.page,[0])),
-            ft.ElevatedButton("Debug",width=pg.page.width,height=pg.page.height/8,style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/debugpg",pg.page,[0]))
+            ft.ElevatedButton("Search",width=pg.page.width,height=pg.page.height/3,style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/search",pg.page,[0]),elevation=10),
+            ft.ElevatedButton("Settings",width=pg.page.width,height=pg.page.height/8,style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/setup",pg.page,[0]),elevation=10),
+            ft.ElevatedButton("Debug",width=pg.page.width,height=pg.page.height/8,style=BOXBUTTON,on_click=lambda _:pg.navigator.navigate("/debugpg",pg.page,[0]),elevation=10)
         ],
         scroll=ft.ScrollMode.ALWAYS
     ))
@@ -401,6 +417,7 @@ def main(page: ft.Page):
     # page.window_prevent_close = True
     
     page.theme = ft.Theme(color_scheme_seed="green",color_scheme=ft.ColorScheme(ft.colors.GREEN))
+    page.theme.use_material3 = not preferences["themeM2"]
     print(page.theme)
     print(page.theme.color_scheme)
     page.update()
