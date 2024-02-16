@@ -252,6 +252,13 @@ def searchPage(pg:fletnav.PageData):
     loadIndicator = ft.ProgressBar(animate_size=ft.Animation(1,ft.AnimationCurve.EASE_OUT))
     
     def search(e):
+        if len(pg.page.controls) > 2:
+            for i in pg.page.controls[2:]:
+                pg.page.remove(i)
+            pg.page.update()
+            loadIndicator.value = None
+            loadIndicator.height = None
+            loadIndicator.update()
         if typePicker.value == "canvas":
             print("==> do search <==")
             if searchBar.value == "":
@@ -333,6 +340,8 @@ def searchPage(pg:fletnav.PageData):
             loadIndicator.height = 0
             loadIndicator.update()
             # loadIndicator.visible = False
+        searchRow.disabled = False
+        searchRow.update()
     typePicker = ft.RadioGroup(ft.Row([ft.Radio(value="originals",label="originals",disabled=False),ft.Radio(value="canvas",label="canvas")],expand=True),value="canvas")
     searchRow = ft.Row([searchBar,ft.FilledTonalButton("GO!",on_click=search)],animate_size=ft.Animation(6,ft.AnimationCurve.BOUNCE_IN_OUT),animate_opacity=ft.Animation(6,ft.AnimationCurve.BOUNCE_IN_OUT))
     pg.add(searchRow,typePicker)
