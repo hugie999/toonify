@@ -10,6 +10,6 @@ a material 3 app for browsing webtoon
 5. profit
 
 ## how to build
-1. install dependencys 
+1. install dependencys (run `pip install -r .\requirements.txt`) in the directory
 2. run build.py
 3. wait
