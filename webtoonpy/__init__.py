@@ -197,6 +197,29 @@ class webtoonapi():
         self._latestresp = resp
         return out
     
+    def listComics(self,type) -> list[comic]:
+        """list EVERY comic in a type as a list
+        please only use this if you know what your doing!"""
+        assert not self.testmode
+        assert type in ["canvas","originals"]
+        params = {"language": self.lang}
+        if self.verbose:
+            print("listComics...")
+        resp = requests.get(self._defaulturl+type+"/titles/list", headers=self._defaultheader, params=params).json()["message"] #really good practice totally
+        
+        #trust me you dont want to print this
+        # if self.verbose:
+        #     print(resp)
+        
+        items = []
+        for i in resp["result"]["titleList"]["titles"]:
+            items.append(comic(i))
+        out = items
+        self._latestresp = resp
+        if self.verbose:
+            print("done!")
+        return out
+    
     def getComic(self,id:int,type="canvas") -> comic:
         assert not self.testmode
         assert type in ["canvas","originals"]
@@ -233,6 +256,6 @@ class webtoonapi():
         except KeyError:
             print("error with json!:")
             print(req.json())
-            raise KeyError
+            raise KeyError("error with json")
         # "Something went wrong, we know it and trying to fix this Rapidly" - rapidapi 2024
 
