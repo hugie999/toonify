@@ -213,7 +213,7 @@ class webtoonapi():
         
         items = []
         for i in resp["result"]["titleList"]["titles"]:
-            items.append(comic(i))
+            items.append(comic(i,type=type))
         out = items
         self._latestresp = resp
         if self.verbose:
@@ -254,8 +254,8 @@ class webtoonapi():
         try:
             return episodeList(req.json()["message"]["result"]["episodeList"],typeOf)
         except KeyError:
-            print("error with json!:")
-            print(req.json())
-            raise KeyError("error with json")
+            # print("error with json!:")
+            # print(req.json())
+            raise KeyError("error with json",req.json(),f"type: {typeOf}")
         # "Something went wrong, we know it and trying to fix this Rapidly" - rapidapi 2024
 

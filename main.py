@@ -130,7 +130,7 @@ def genComicsheet(com:wtp.comic,wtb:wtp.webtoonapi,naviPage:fletnav.PageData) ->
         print(f"total: {com.epNum}")
         print(f"ep   : {(com.epNum)-int(epnumpicker.value)}")
         print(f"rawep: {epnumpicker.value}")
-        ep = wtb.getEpisodes(com,(com.epNum+1)-int(epnumpicker.value)-1,1).episodes[0]
+        ep = wtb.getEpisodes(com,(com.epNum+1)-int(epnumpicker.value)-1,1,typeOf=com.type).episodes[0]
         e.page.add(
             genEpisodesheet(ep.episodeName,loadAsB64(ep.thumbnail),ep,wtb,naviPage)
         )
