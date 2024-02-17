@@ -431,7 +431,7 @@ def debugPage(pg:fletnav.PageData):
 @fletnav.route("/")
 def homePage(pg:fletnav.PageData):
     #do this thing
-    
+    global webtoonapi
     print(f"dimentions 2: [{pg.page.width},{pg.page.height},{pg.page.window_width},{pg.page.window_height}]")
     
     
@@ -439,6 +439,8 @@ def homePage(pg:fletnav.PageData):
     print(pg.page.views)
     pg.page.scroll = False
     appbar = ft.AppBar(leading=ft.Icon(ft.icons.HOME),title=ft.Text("Home"),elevation=10)
+        
+    
     pg.set_appbar(appbar)
     pg.add(ft.SafeArea(ft.Row([ft.Icon(ft.icons.INFO,color=ft.colors.BLUE_400),ft.Text("looks like thares nothing here... ):")])))
     # pg.add(ft.Row([
@@ -464,7 +466,7 @@ def homePage(pg:fletnav.PageData):
     
         
 def main(page: ft.Page):
-    global webtoonapi
+    
     TOKEN = page.client_storage.get("ca.hugie999.toonify.token")
     global tokeninput
     global token
@@ -606,8 +608,14 @@ def main(page: ft.Page):
     
     page.views.insert(-1,ft.View("BACKINTERCEPTER",[ft.Text("this should not appear")]))
     # navigator.route_changed_handler
-    navigator.render(page)
+    
+    global webtoonapi
+    print(type(webtoonapi))
     webtoonapi = wtp.webtoonapi(token)
+    print(type(webtoonapi))
+    
+    navigator.render(page)
+    
     #comment this for id input area 
     return
     

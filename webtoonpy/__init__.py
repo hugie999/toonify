@@ -162,7 +162,7 @@ class webtoonapi():
     def getRequestAmount(self) -> headerInfo:
         """idfk what to name its how many requests you have used (cus its limuted)"""
         assert self._latestresp
-        return headerInfo(self._latestresp.headers["X-RateLimit-Requests-Remaining"],self._latestresp.headers["X-RateLimit-Requests-Limit"])
+        return headerInfo(int(self._latestresp.headers["X-RateLimit-Requests-Remaining"]),int(self._latestresp.headers["X-RateLimit-Requests-Limit"]))
     def getGenres(self) -> dict:
         if self.verbose:
             print("getGenres")
