@@ -17,6 +17,8 @@ token = ""              #token value
 closeAppForReal = False #used at home screen to check wether to close the app
 DEFAULTTEST = 300138    #default value in debug page
 preferences = {"themeM2":False}        #to be used later
+webtoonapi:wtp.webtoonapi = None
+
 # wb = wtp.webtoonapi(tokeninput.value)
 
 def openInBrowser(link):
@@ -271,7 +273,7 @@ def searchPage(pg:fletnav.PageData):
             searchRow.disabled = True
             print(f"query: {searchBar.value}")
             pg.add(loadIndicator)
-            webtoon = wtp.webtoonapi(token)
+            webtoon = webtoonapi
             print("search...")
             result:wtp.search =  webtoon.doSearch(searchBar.value,type="canvas")
             comics = []
@@ -301,7 +303,7 @@ def searchPage(pg:fletnav.PageData):
             searchRow.disabled = True
             print(f"query: {searchBar.value}")
             pg.add(loadIndicator)
-            webtoon = wtp.webtoonapi(token)
+            webtoon = webtoonapi
             print("search...")
             
             everyComic = webtoon.listComics("originals")
@@ -375,7 +377,7 @@ def debugPage(pg:fletnav.PageData):
         pg.add(pr)#ft.Column([ft.Row([pr],vertical_alignment=ft.CrossAxisAlignment.CENTER)],horizontal_alignment=ft.CrossAxisAlignment.CENTER))
         print("aa")
         
-        wb = wtp.webtoonapi(token)
+        wb = webtoonapi
         comic = wb.getComic(comicidinput.value,type=comictypeinput.value)
         pg.add(genComicCard(comic,wb,pg))
         return
@@ -462,7 +464,7 @@ def homePage(pg:fletnav.PageData):
     
         
 def main(page: ft.Page):
-    
+    global webtoonapi
     TOKEN = page.client_storage.get("ca.hugie999.toonify.token")
     global tokeninput
     global token
@@ -605,7 +607,7 @@ def main(page: ft.Page):
     page.views.insert(-1,ft.View("BACKINTERCEPTER",[ft.Text("this should not appear")]))
     # navigator.route_changed_handler
     navigator.render(page)
-    
+    webtoonapi = wtp.webtoonapi(token)
     #comment this for id input area 
     return
     
