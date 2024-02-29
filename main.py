@@ -6,6 +6,7 @@ import time
 import base64 as b64
 import webtoonpy as wtp
 import flet_navigator as fletnav #flet navigator
+import time #mainly used for debuging (fake loading times)
 print("====>app start<====")
 print(f"flet version           : {flet.version.version}")
 print(f"flet navigator version : {fletnav.FLET_NAVIGATOR_VERSION}")
@@ -18,7 +19,8 @@ closeAppForReal = False #used at home screen to check wether to close the app
 DEFAULTTEST = 300138    #default value in debug page
 preferences = {"themeM2":False}        #to be used later
 webtoonapi:wtp.webtoonapi = None
-
+def saveCache(page:ft.Page):
+    page.client_storage.set("ca.hugie999.toonify.storedcache",webtoonapi.cache.serialise())
 # wb = wtp.webtoonapi(tokeninput.value)
 
 def openInBrowser(link):
@@ -46,6 +48,7 @@ def readepisode(ep:wtp.episode,page:fletnav.PageData,pep:wtp.partialEpisode,prog
         # imgb64 = i.imgb64
         img = imgs[0]
         #testing image
+        print(i.url)
         img = b64.encodebytes(wtp.loadImage(i.url)).decode("ascii").replace("\n","") #yass
         # images.append(ft.Image(src_base64=img,fit=ft.ImageFit.FIT_WIDTH,expand=True))#,width=page.width,height=page.height))#,width=300))
         images.append(img)
@@ -247,11 +250,11 @@ def readPage(pg:fletnav.PageData):
 @fletnav.route("/search")
 def searchPage(pg:fletnav.PageData):
     # pg.navigator.navigate("/errorPage",pg.page,["notReadyYet1"])
-    pg.set_appbar(ft.AppBar(leading=ft.Icon(ft.icons.SEARCH),title=ft.Text("Search"),elevation=10,actions=[ft.IconButton(ft.icons.ARROW_BACK,on_click=lambda _:pg.navigator.navigate("/",pg.page))]))
+    pg.set_appbar(ft.AppBar(leading=ft.Icon(ft.icons.SEARCH),title=ft.Text("Search"),elevation=20,actions=[ft.IconButton(ft.icons.ARROW_BACK,on_click=lambda _:pg.navigator.navigate("/",pg.page))]))
     
     pg.page.scroll = True
     searchBar = ft.TextField(label="Search",icon=ft.icons.SEARCH,expand=True)
-    loadIndicator = ft.ProgressBar(animate_size=ft.Animation(1,ft.AnimationCurve.EASE_OUT))
+    loadIndicator = ft.ProgressBar(animate_size=ft.Animation(100,ft.AnimationCurve.EASE_OUT),animate_opacity=ft.Animation(100,ft.AnimationCurve.EASE_OUT))
     
     def search(e):
         if len(pg.page.controls) > 2:
@@ -269,8 +272,8 @@ def searchPage(pg:fletnav.PageData):
                 searchBar.update()
                 return
             # searchRow.width = 0
-            # searchRow.height = 0
-            searchRow.disabled = True
+            searchArea.height = 0
+            # searchRow.disabled = True
             print(f"query: {searchBar.value}")
             pg.add(loadIndicator)
             webtoon = webtoonapi
@@ -299,8 +302,9 @@ def searchPage(pg:fletnav.PageData):
                 searchBar.update()
                 return
             # searchRow.width = 0
-            # searchRow.height = 0
-            searchRow.disabled = True
+            searchArea.height = 0
+            searchArea.update()
+            # searchRow.disabled = True
             print(f"query: {searchBar.value}")
             pg.add(loadIndicator)
             webtoon = webtoonapi
@@ -325,7 +329,25 @@ def searchPage(pg:fletnav.PageData):
             if len(comics) == 0:
                 #add no results condition here soon
                 print("no results!")
+                cont = ft.Container(ft.Text("no results found!"),padding=ft.Padding(10,10,10,10),height = 0,animate=ft.Animation(600,ft.AnimationCurve.EASE_OUT_CIRC))
+                pg.page.add(ft.Card(cont,
+                    elevation=20,
+                    color=ft.colors.RED_400,
+                    width=pg.page.width
+                    
+                ))
+                cont.height = None
+                # cont.update()
+                
+                loadIndicator.value = 1
+                searchArea.disabled = False
+                # searchArea.scale = ft.Scale(1)
+                loadIndicator.height = None
+                searchArea.height = None
+                searchArea.update()
+                loadIndicator.update()
                 return
+            pg.page.update()
             # result:wtp.search =  webtoon.doSearch(searchBar.value,type="canvas")
             comicCards = []
             
@@ -336,29 +358,52 @@ def searchPage(pg:fletnav.PageData):
                 print(loadIndicator.value)
                 loadIndicator.value += 1.0/len(comics)
                 loadIndicator.update()
-            for i in comicCards:
-                pg.add(i)
+            colom = ft.Column(comicCards)
+            cont = ft.Container(colom,animate_size=ft.Animation(500),height=0)
+            pg.add(cont)
+            cont.height = None
+            cont.update()
+            # for i in comicCards:
+            #     pg.add(i)
             loadIndicator.value = 1
-            loadIndicator.height = 0
+            loadIndicator.height = None
+            # searchArea.scale = ft.Scale(1)
+            # loadIndicator.width = 0
+            searchArea.height = None
             loadIndicator.update()
+            searchArea.update()
             # loadIndicator.visible = False
-        searchRow.disabled = False
-        searchRow.update()
+        searchArea.disabled = False
+        searchArea.update()
+        saveCache(pg.page)
     typePicker = ft.RadioGroup(ft.Row([ft.Radio(value="originals",label="originals",disabled=False),ft.Radio(value="canvas",label="canvas")],expand=True),value="canvas")
-    searchRow = ft.Row([searchBar,ft.FilledTonalButton("GO!",on_click=search)],animate_size=ft.Animation(6,ft.AnimationCurve.BOUNCE_IN_OUT),animate_opacity=ft.Animation(6,ft.AnimationCurve.BOUNCE_IN_OUT))
-    pg.add(searchRow,typePicker)
-    
+    searchRow = ft.Row([searchBar,ft.FilledTonalButton("GO!",on_click=search)])
+    searchArea = ft.Container(
+            ft.Column([searchRow,typePicker]),
+                padding=ft.Padding(10,10,10,10),
+                animate_size=ft.Animation(800,ft.AnimationCurve.EASE_OUT_QUART)
+                    )
+    print(f"h:{searchArea.height}")
+    pg.add(ft.Card(ft.Card(searchArea,elevation=20)))
 @fletnav.route("/setup")
 def settingsPage(pg:fletnav.PageData):
-    pg.set_appbar(ft.AppBar(leading=ft.Icon(ft.icons.SETTINGS),title=ft.Text("Settings"),elevation=10,actions=[ft.IconButton(ft.icons.ARROW_BACK,on_click=lambda _:pg.navigator.navigate("/",pg.page))]))
+    pg.set_appbar(ft.AppBar(leading=ft.Icon(ft.icons.SETTINGS),title=ft.Text("Settings"),elevation=20,actions=[ft.IconButton(ft.icons.ARROW_BACK,on_click=lambda _:pg.navigator.navigate("/",pg.page))]))
     def setM2theme(e:ft.ControlEvent):
         global preferences
-        preferences["themeM2"] = e.data
+        
+        preferences["themeM2"] = {"true":True,"false":False}[e.data]
         print(e.data)
         pg.page.theme.use_material3 = not preferences["themeM2"]
+        print(pg.page.theme)
         pg.page.update()
+        pg.page.client_storage.set("ca.hugie999.toonify.prefs",preferences)
     pg.add(ft.Switch(label="Material 2 theme:",on_change=setM2theme,value=preferences["themeM2"]))
-
+    pg.add(ft.Container(
+        ft.FilledButton("RESET ALL USER DATA",
+                        icon=ft.icons.DELETE_FOREVER_OUTLINED,
+                        icon_color=ft.colors.RED,
+                        on_click=lambda _: pg.page.client_storage.clear())
+        ))
 @fletnav.route("/debugpg")
 def debugPage(pg:fletnav.PageData):
     # pg.add(ft.SafeArea())
@@ -366,7 +411,7 @@ def debugPage(pg:fletnav.PageData):
     pg.set_appbar(ft.AppBar(
             leading=ft.Icon(ft.icons.TERMINAL),
             title=ft.Text("debug"),
-            elevation=10,
+            elevation=20,
             actions=[ft.IconButton(ft.icons.ARROW_BACK,on_click=lambda _:pg.navigator.navigate("/",pg.page))]
         ))
     comicidinput = ft.TextField(label="comic id:",value="300138",enable_suggestions=False,hint_text="0000000000",icon=ft.icons.BOOK_OUTLINED,input_filter=ft.NumbersOnlyInputFilter())
@@ -433,12 +478,12 @@ def homePage(pg:fletnav.PageData):
     #do this thing
     global webtoonapi
     print(f"dimentions 2: [{pg.page.width},{pg.page.height},{pg.page.window_width},{pg.page.window_height}]")
-    
+    saveCache(pg.page)
     
     # pg.page.views.clear()
     print(pg.page.views)
     pg.page.scroll = False
-    appbar = ft.AppBar(leading=ft.Icon(ft.icons.HOME),title=ft.Text("Home"),elevation=10)
+    appbar = ft.AppBar(leading=ft.Icon(ft.icons.HOME),title=ft.Text("Home"),elevation=20)
         
     
     pg.set_appbar(appbar)
@@ -466,10 +511,18 @@ def homePage(pg:fletnav.PageData):
     
         
 def main(page: ft.Page):
-    
+    page.add(ft.Container(
+        ft.Card(ft.Container(
+            ft.ProgressRing()
+            ,padding=ft.Padding(50,50,50,50)),elevation=50) #container-seption
+        ,alignment=ft.alignment.center,width=page.width,height=page.height))
     TOKEN = page.client_storage.get("ca.hugie999.toonify.token")
     global tokeninput
     global token
+    global preferences
+    print(page.client_storage.get("ca.hugie999.toonify.prefs"))
+    if page.client_storage.contains_key("ca.hugie999.toonify.prefs"):
+        preferences = page.client_storage.get("ca.hugie999.toonify.prefs")
     #note to self: this -> 1435 <- is the comic for testing originals
     print(f"dimentions: [{page.width},{page.height},{page.window_width},{page.window_height}]")
     
@@ -526,6 +579,7 @@ def main(page: ft.Page):
             snack = ft.SnackBar(ft.Text("Token saved!"),open=True)
             page.add(snack)
             page.update()
+            page.window_destroy()
         else:
             tokeninput.error_text = "Please input a token!"
             tokeninput.update()
@@ -612,8 +666,13 @@ def main(page: ft.Page):
     global webtoonapi
     print(type(webtoonapi))
     webtoonapi = wtp.webtoonapi(token)
+    if page.client_storage.contains_key("ca.hugie999.toonify.storedcache"):
+        webtoonapi.cache = wtp.webtoonCache(page.client_storage.get("ca.hugie999.toonify.storedcache"))
+        print(webtoonapi.cache)
+    else:
+        saveCache(page)
     print(type(webtoonapi))
-    
+    # time.sleep(10) <== used for testing loading animation
     navigator.render(page)
     
     #comment this for id input area 
