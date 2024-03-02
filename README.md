@@ -13,3 +13,9 @@ a material 3 app for browsing webtoon
 1. install dependencys (run `pip install -r .\requirements.txt`) in the directory
 2. run build.py
 3. wait
+
+# branch info!
+
+this branch is intended to add scrapeing support to webtoonpy
+
+that way you dont need an api key!
