@@ -10,11 +10,27 @@ import time
 import bs4
 
 __version__ = '0.0.3'
-BASECOMICURL = "https://www.webtoons.com/en/canvas/barry-and-bobby/list?title_no=" #for scraping
-
+BASECOMICURLS = ["https://www.webtoons.com/en/canvas/barry-and-bobby/list?title_no=","https://www.webtoons.com/en/thriller/dead-but-not-gone/list?title_no="] #for scraping
+"""base comic urls for scrapers [1] = canvas (barry and bobby) [2] = original (dead 🅱️ut not gone)"""
 # def createComicJson(name:str,id:int,author:str) -> dict:
 #     """allows creation of comic() classes without request json"""
-    
+
+def strToInt(x):
+    if type(x) == float or type(x) == int:
+        return x
+    if 'K' in x:
+        if len(x) > 1:
+            return int(float(x.replace('K', '')) * 1000)
+        return 1000
+    if 'M' in x:
+        if len(x) > 1:
+            return int(float(x.replace('M', '')) * 1000000)
+        return 1000000
+    if 'B' in x:
+        return int(float(x.replace('B', '')) * 1000000000)
+    return 0
+"""THANK YOU SO F#CKING MUCH PERSON ON STACK OVERFLOW (link : https://stackoverflow.com/a/41028390"""
+
 
 def loadImage(url:str) -> bytes:
     "this litterally returns a png so be prepared"
@@ -380,13 +396,18 @@ class webtoonScraper():
                 return self.cache._comicOriginalsCache
                 
     
-    def getComic(self,id:int|str,type="canvas") -> comic:
+    def getComic(self,id:int|str|None=None,url:str|None="",type="canvas") -> comic:
         assert not self.testmode
         assert type in ["canvas","originals"]
-        
+        assert url or id
+        if url:
+            id = url.split("?title_no=")[1].split("&page=")[0]
+            print(id)
+        if id.__class__ != int:
+            id = int(id) #fixes cache not working if id is an str
         if type == "canvas":
             # print(self._requestsSession.cookies)
-            wp = getWebPage(BASECOMICURL+str(id),self._requestsSession)
+            wp = getWebPage(BASECOMICURLS[0]+str(id),self._requestsSession)
             soup = bs4.BeautifulSoup(wp,"html.parser")
             comicName = soup.find("meta",{"property":"og:title"}).attrs["content"]
             comicAuthorRaw = soup.find("a",{"class":"author"})
@@ -407,17 +428,38 @@ class webtoonScraper():
                          "ageGradeNotice":False, #implement later ):
                          "totalServiceEpisodeCount":episodeCount,
                          "summary":summary,
-                         "views":int(raitingsArea[0].contents[0].replace(",","")),
-                         "subscribers":int(raitingsArea[1].contents[0].replace(",","")),
+                         "views":strToInt(raitingsArea[0].contents[0].replace(",","")),
+                         "subscribers":strToInt(raitingsArea[1].contents[0].replace(",","")),
                          "stars":float(raitingsArea[2].contents[0])}
-            
-            # print(comicName)
-            
-            # print(self._requestsSession.cookies)
-        
             return comic(comicJson)
         else:
-            raise NotImplementedError("originals not implemented yet!")
+            wp = getWebPage(BASECOMICURLS[1]+str(id),self._requestsSession)
+            soup = bs4.BeautifulSoup(wp,"html.parser")
+            comicName = soup.find("meta",{"property":"og:title"}).attrs["content"]
+            comicAuthorRaw = soup.find("a",{"class":"author"})
+            comicAuthor = {"name":comicAuthorRaw.contents[0],"link":comicAuthorRaw.attrs["href"]}
+            thumbnailURL = soup.find("img").attrs["src"]
+            episodeCount = soup.find("li",attrs={"class":"_episodeItem"}).attrs["data-episode-no"]
+            pageCount    = 0 #class="pg_next"
+            summary  = soup.find("a",attrs={"class","summary"})
+            raitingsArea = soup.find("ul",attrs={"class":"grade_area"}).find_all("em",attrs={"class":"cnt"})
+            print(raitingsArea[0])
+            
+            # print(thumbnailURL)
+            comicJson = {"title":comicName,
+                         "titleNo":id,
+                         "author":comicAuthorRaw.contents[0],
+                         "authorLink":comicAuthorRaw.attrs["href"],
+                         "thumbnail":thumbnailURL,
+                         "ageGradeNotice":False, #implement later ):
+                         "totalServiceEpisodeCount":episodeCount,
+                         "summary":summary,
+                         "views":strToInt(raitingsArea[0].contents[0].replace(",","")),
+                         "subscribers":strToInt(raitingsArea[1].contents[0].replace(",","")),
+                         "stars":float(raitingsArea[2].contents[0])}
+        
+        return
+        
         if id.__class__ != int:
             id = int(id) #fixes cache not working if id is an str
         cachedComic = self.cache.checkComic(id,type)
