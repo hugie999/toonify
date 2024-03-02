@@ -58,12 +58,13 @@ class homePage():
             self.recTitleList.append(comic(i['titleInfo'],"canvas",i['linkTitleNo']))
 
 class episode():
-    def __init__(self,raw:dict) -> None:
+    def __init__(self,raw:dict,comicId:int) -> None:
         """its like the other episode class but with images
         raw should start from 'episodeInfo'"""
         self._json = raw
         self.no = raw["episodeSeq"]
         self.author = raw["writingAuthorName"]
+        self.comicId = comicId
         try:
             self.next = raw["nextEpisodeNo"]
             """ps its good practice to check if next exsists"""
@@ -88,7 +89,7 @@ class headerInfo():
 
 #its up here cus it returns a header info (sorry for the inconsistant placeing)
 class partialEpisode():
-    def __init__(self,raw:dict,type:str) -> None:
+    def __init__(self,raw:dict,type:str,comicId) -> None:
         """basically just episode class but without the images"""
         self._json = raw
         self.parentID:int    = raw["titleNo"]
@@ -164,25 +165,33 @@ class webtoonCache():
         ps: dont make this yourself this is just for webtoonapi() to make"""
         
         self._partialEpisodeCache:list[partialEpisode] = []
-        self._episodeCache:list[episode]              = []
-        self._comicOriginalsCache:list[comic]         = []
-        self._comicCanvasCache:list[comic]            = []
-        # self._searchCache:list[search]                = []
-        self._genresCache:dict                        = None
-        self.listedOriginals                          = False
-        self.listedCanvas                             = False
+        self._comicOriginalsCache:list[episode]        = []
+        self._episodeCacheCanvas:list[episode]         = []
+        # self._comicOriginalsCache:list[comic]        = []
+        # self._episodeOriginalsCache:list               = []
+        self._comicCanvasCache:list[comic]             = []
+        # self._searchCache:list[search]               = []
+        self._genresCache:dict                         = None
+        self.listedOriginals                           = False
         if rawJson:
             for i in rawJson["parEpisode"]:
                 self._partialEpisodeCache.append(partialEpisode(i))
-            for i in rawJson["episode"]:
-                self._episodeCache.append(episode(i))
+            # for i in rawJson["comicOriginals"]:
+            #     self._comicOriginalsCache.append(episode(i[0],i[1]))
+            # for i in rawJson["comicCanvas"]:
+            #     self._episodeCacheCanvas.append(episode(i[0],i[1]))
             for i in rawJson["comicOriginals"]:
                 self._comicOriginalsCache.append(comic(i,"originals"))
             for i in rawJson["comicCanvas"]:
                 self._comicCanvasCache.append(comic(i,"canvas"))
             self.listedOriginals      = rawJson["hasListedOriginals"]
-            self.listedCanvas         = rawJson["hasListedCanvas"]
-            
+    def clean(self) -> None:
+        pass
+        # self._partialEpisodeCache = list(set(self._partialEpisodeCache))
+        # self._episodeCacheCanvas        = list(set(self._episodeCacheCanvas))
+        # self._episodeCacheCanvas        = list(set(self._episodeCacheCanvas))
+        # self._comicOriginalsCache = list(set(self._comicOriginalsCache))
+        # self._comicCanvasCache    = list(set(self._comicCanvasCache))
     def addComicToCache(self,comics:list[comic],type:str):
         if type == "canvas":
             self._comicCanvasCache += comics
@@ -209,6 +218,7 @@ class webtoonCache():
     def reset(self):
         self = webtoonCache()
     def addEpisodeToCache(self,episodes:list[episode]|episodeList):
+        raise NotImplementedError("episode cacheing isnt done yet!")
         if type(episodes) == list:
             self._episodeCache += episodes
         elif type(episodes) == episodeList:
@@ -216,21 +226,25 @@ class webtoonCache():
         else:
             raise ValueError("bad type for the function.")
         # print(self._comicCanvasCache)
-    def checkEpisode(self,id:int) -> episode|None:
-        for i in self._episodeCache:
-            if i == id:
-                return i
+    def checkEpisodeOriginals(self,comicId:int,id:int) -> episode|None:
+        raise NotImplementedError("episode cacheing isnt done yet!")
+        for i in self._comicOriginalsCache:
+            if i.comicId == comicId:
+                if i.no == id:
+                    return i
         return None
-    def checkEpisode(self,id:int) -> episode|None:
-        for i in self._episodeCache:
-            if i == id:
-                return i
+    def checkEpisodeCanvas(self,comicId:int,id:int) -> episode|None:
+        for i in self._comicCanvasCache:
+            if i.comicId == comicId:
+                if i.no == id:
+                    return i
         return None
     def serialise(self) -> dict:
         """turn the ENTIRE cache into a dict for easy storage"""
         retvar =  {
             "parEpisode":[],
-            "episode":[],
+            "episodeCanvas":[],
+            "episodeOriginals":[],
             "comicOriginals":[],
             "comicCanvas":[],
             "hasListedOriginals":[],
@@ -238,13 +252,10 @@ class webtoonCache():
             }
         for i in self._partialEpisodeCache:
             retvar["parEpisode"].append(i._json)
-        for i in self._episodeCache:
-            retvar["episode"].append(i._json)
         for i in self._comicOriginalsCache:
             retvar["comicOriginals"].append(i._json)
         for i in self._comicCanvasCache:
             retvar["comicCanvas"].append(i._json)
-        retvar["hasListedCanvas"]    = self.listedCanvas
         retvar["hasListedOriginals"] = self.listedOriginals
         return retvar
     
@@ -315,7 +326,7 @@ class webtoonapi():
             print("listComics...")
         # print(self.cache.listedCanvas and type == "canvas")
         # print(self.cache.listedOriginals and type == "originals")
-        if not ((self.cache.listedCanvas and type == "canvas") or (self.cache.listedOriginals and type == "originals")):
+        if ((not self.cache.listedOriginals) and type == "originals") or type == "canvas":
             resp = requests.get(self._defaulturl+type+"/titles/list", headers=self._defaultheader, params=params).json()["message"] #really good practice totally
             
             #trust me you dont want to print this
@@ -367,7 +378,7 @@ class webtoonapi():
 
         resp = requests.get(self._defaulturl+oldEpisode.type+"/episodes/get-info", headers=self._defaultheader, params=params)
         self._latestresp = resp
-        return episode(resp.json()["message"]["result"]["episodeInfo"])
+        return episode(resp.json()["message"]["result"]["episodeInfo"],oldEpisode.parentID)
     
     def getEpisodes(self,comicToUse:comic|int,startIndex=0,size=20,typeOf:str="canvas"):
         """returns episodes (reminder that episodes are returned in reverse order (last to first) so be carefulas)
@@ -384,8 +395,10 @@ class webtoonapi():
         params = {"titleNo":comicid,"startIndex":startIndex,"language":self.lang,"pageSize":size}
         req = requests.get(self._defaulturl+typeOf+"/episodes/list",params,headers=self._defaultheader)
         self._latestresp = req
+        epl = episodeList(req.json()["message"]["result"]["episodeList"],typeOf)
+        self.cache.addEpisodeToCache(epl)
         try:
-            return episodeList(req.json()["message"]["result"]["episodeList"],typeOf)
+            return epl
         except KeyError:
             # print("error with json!:")
             # print(req.json())
