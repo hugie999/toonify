@@ -137,7 +137,11 @@ class comic():
             self.id         = id
         else:
             self.id         = json["titleNo"]
-            
+        
+        self.views       = json["views"]
+        self.subscribers = json["subscribers"]
+        self.raiting     = json["stars"]
+        
         """the cooler self.name"""
         self.author     = json["author"]
         self.authorURL  = json["authorLink"]
@@ -152,6 +156,9 @@ class comic():
         assert type in ["canvas","originals"]
         """either 'canvas' or originals"""
         self.epNum = json["totalServiceEpisodeCount"]
+        self.summary = json["summary"]
+        
+        
     def __str__(self) -> str:
         return f"name: {self.name}, id: {self.id}, author:{self.author}"
 class search():
@@ -281,6 +288,9 @@ class webtoonScraper():
         self.lang  = lang
         self.testmode = testMode
         self.verbose = verbose
+        self.useWaitTimer = True
+        self.waitTime     = 1
+        
         self._requestsSession = requests.Session()
         # self._soup = bs4.BeautifulSoup()
         self.cache = webtoonCache()
@@ -328,8 +338,8 @@ class webtoonScraper():
         self._latestresp = resp
         return out
 
-    def listComics(self,type) -> list[comic]:
-        """list EVERY comic in a type as a list
+    def listComics(self) -> list[comic]:
+        """list EVERY comic in the originals section as a list
         please only use this if you know what your doing!"""
         assert not self.testmode
         assert type in ["canvas","originals"]
@@ -384,7 +394,9 @@ class webtoonScraper():
             thumbnailURL = soup.find("img").attrs["src"]
             episodeCount = soup.find("li",attrs={"class":"_episodeItem"}).attrs["data-episode-no"]
             pageCount    = 0 #class="pg_next"
-            
+            summary  = soup.find("a",attrs={"class","summary"})
+            raitingsArea = soup.find("ul",attrs={"class":"grade_area"}).find_all("em",attrs={"class":"cnt"})
+            print(raitingsArea[0])
             
             # print(thumbnailURL)
             comicJson = {"title":comicName,
@@ -393,14 +405,19 @@ class webtoonScraper():
                          "authorLink":comicAuthorRaw.attrs["href"],
                          "thumbnail":thumbnailURL,
                          "ageGradeNotice":False, #implement later ):
-                         "totalServiceEpisodeCount":episodeCount}
+                         "totalServiceEpisodeCount":episodeCount,
+                         "summary":summary,
+                         "views":int(raitingsArea[0].contents[0].replace(",","")),
+                         "subscribers":int(raitingsArea[1].contents[0].replace(",","")),
+                         "stars":float(raitingsArea[2].contents[0])}
             
             # print(comicName)
             
             # print(self._requestsSession.cookies)
         
             return comic(comicJson)
-    
+        else:
+            raise NotImplementedError("originals not implemented yet!")
         if id.__class__ != int:
             id = int(id) #fixes cache not working if id is an str
         cachedComic = self.cache.checkComic(id,type)
