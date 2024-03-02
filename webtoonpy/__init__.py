@@ -449,6 +449,7 @@ class webtoonScraper():
 
 class webtoonapi():
     def __init__(self,token:str,lang="en",testMode=False,verbose=True) -> None:
+        raise DeprecationWarning("this class has been deprecated!\nsome or all functions may not work")
         """creates a webtoon api class with your token and languedge (me when i cant spell)
         (testmode uses preset values for testing)"""
         # if not token:
