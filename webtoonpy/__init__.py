@@ -140,6 +140,7 @@ class comic():
             
         """the cooler self.name"""
         self.author     = json["author"]
+        self.authorURL  = json["authorLink"]
         self.previewImg = json["thumbnail"]
         "the thumbnail for the comic (use loadImage() to load this!)"
         try:
@@ -268,7 +269,7 @@ class webtoonCache():
         retvar["hasListedOriginals"] = self.listedOriginals
         return retvar
 
-class webtoonapi():
+class webtoonScraper():
     def __init__(self,lang="en",testMode=False,verbose=True) -> None:
         """creates a webtoon api class with your token and languedge (me when i cant spell)
         (testmode uses preset values for testing)"""
@@ -374,21 +375,29 @@ class webtoonapi():
         assert type in ["canvas","originals"]
         
         if type == "canvas":
-            print(self._requestsSession.cookies)
+            # print(self._requestsSession.cookies)
             wp = getWebPage(BASECOMICURL+str(id),self._requestsSession)
             soup = bs4.BeautifulSoup(wp,"html.parser")
             comicName = soup.find("meta",{"property":"og:title"}).attrs["content"]
+            comicAuthorRaw = soup.find("a",{"class":"author"})
+            comicAuthor = {"name":comicAuthorRaw.contents[0],"link":comicAuthorRaw.attrs["href"]}
+            thumbnailURL = soup.find("img").attrs["src"]
+            episodeCount = soup.find("li",attrs={"class":"_episodeItem"}).attrs["data-episode-no"]
+            pageCount    = 0 #class="pg_next"
             
+            
+            # print(thumbnailURL)
             comicJson = {"title":comicName,
-                         "titleNo":69,
-                         "author":"mr author guy/girl",
-                         "thumbnail":"temp thumbnail",
-                         "ageGradeNotice":False,
-                         "totalServiceEpisodeCount":1}
+                         "titleNo":id,
+                         "author":comicAuthorRaw.contents[0],
+                         "authorLink":comicAuthorRaw.attrs["href"],
+                         "thumbnail":thumbnailURL,
+                         "ageGradeNotice":False, #implement later ):
+                         "totalServiceEpisodeCount":episodeCount}
             
-            print(comicName)
+            # print(comicName)
             
-            print(self._requestsSession.cookies)
+            # print(self._requestsSession.cookies)
         
             return comic(comicJson)
     
@@ -438,7 +447,7 @@ class webtoonapi():
             raise KeyError("error with json",req.json(),f"type: {typeOf}")
         # "Something went wrong, we know it and trying to fix this Rapidly" - rapidapi 2024
 
-class oldwebtoonapi():
+class webtoonapi():
     def __init__(self,token:str,lang="en",testMode=False,verbose=True) -> None:
         """creates a webtoon api class with your token and languedge (me when i cant spell)
         (testmode uses preset values for testing)"""

@@ -1,5 +1,6 @@
 import __init__ as webtoonpy
 
-api = webtoonpy.webtoonapi()
+api = webtoonpy.webtoonScraper()
 
-print(api.getComic(916339))
+print(api.getComic(916339).previewImg)
+
