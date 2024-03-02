@@ -7,8 +7,10 @@ remember to use a token and always practice safe requesting"""
 import requests
 import base64
 import time
+import bs4
 
 __version__ = '0.0.3'
+BASECOMICURL = "https://www.webtoons.com/en/canvas/barry-and-bobby/list?title_no=" #for scraping
 
 # def createComicJson(name:str,id:int,author:str) -> dict:
 #     """allows creation of comic() classes without request json"""
@@ -20,6 +22,9 @@ def loadImage(url:str) -> bytes:
     #fuck you webtoon
     resp = requests.get(newurl,headers={'User-agent': 'Mozilla/5.0 (Linux; Android 8.1.0; Mi MIX 2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Mobile Safari/537.36','Referer':'http://m.webtoons.com/'})# <- teh secret sauce
     return resp.content
+def getWebPage(url,session:requests.Session) -> str:
+    resp = session.get(url)
+    return resp.content.decode()
 
 class webtoonImage():
     def __init__(self,raw:dict) -> None:
@@ -87,6 +92,10 @@ class headerInfo():
     def __str__(self) -> str:
         return f"headerInfo -> (used: {self.requestsUsed}, remaining: {self.remaining}, avalible: {self.totalAvalible}) <-"
 
+class partialComic():
+    def __init__(self) -> None:
+        pass
+
 #its up here cus it returns a header info (sorry for the inconsistant placeing)
 class partialEpisode():
     def __init__(self,raw:dict,type:str,comicId) -> None:
@@ -130,7 +139,7 @@ class comic():
             self.id         = json["titleNo"]
             
         """the cooler self.name"""
-        self.author     = json["writingAuthorName"]
+        self.author     = json["author"]
         self.previewImg = json["thumbnail"]
         "the thumbnail for the comic (use loadImage() to load this!)"
         try:
@@ -258,8 +267,178 @@ class webtoonCache():
             retvar["comicCanvas"].append(i._json)
         retvar["hasListedOriginals"] = self.listedOriginals
         return retvar
-    
+
 class webtoonapi():
+    def __init__(self,lang="en",testMode=False,verbose=True) -> None:
+        """creates a webtoon api class with your token and languedge (me when i cant spell)
+        (testmode uses preset values for testing)"""
+        # if not token:
+        #     print("hey you need a token for this!\ntokens are here: https://rapidapi.com/apidojo/api/webtoon/details")
+        # assert token
+        self._latestresp:requests.Response = None
+        self.token = None
+        self.lang  = lang
+        self.testmode = testMode
+        self.verbose = verbose
+        self._requestsSession = requests.Session()
+        # self._soup = bs4.BeautifulSoup()
+        self.cache = webtoonCache()
+        self._defaultheader = {}
+        # self._defaultheader = {
+        #     "X-RapidAPI-Key": token,
+        #     "X-RapidAPI-Host": "webtoon.p.rapidapi.com"}
+        self._defaulturl = "https://webtoon.p.rapidapi.com/"
+    def getRequestAmount(self) -> headerInfo:
+        return None
+        """idfk what to name its how many requests you have used (cus its limuted)"""
+        assert self._latestresp
+        return headerInfo(int(self._latestresp.headers["X-RateLimit-Requests-Remaining"]),int(self._latestresp.headers["X-RateLimit-Requests-Limit"]))
+    def getGenres(self) -> dict:
+        if self.verbose:
+            print("getGenres")
+        if self.testmode:
+            #test mode go brrr
+            return {'message': {'type': 'response', 'service': 'com.naver.webtoon', 'version': '0.0.1', 'result': {'genreTabList': {'genreTabs': [{'name': 'All', 'index': 0, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/ALL.png?dt=2022022201', 'code': 'ALL'}, {'name': 'Comedy', 'index': 1, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/COMEDY.png?dt=2022022201', 'code': 'COMEDY'}, {'name': 'Fantasy', 'index': 2, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/FANTASY.png?dt=2022022201', 'code': 'FANTASY'}, {'name': 'Romance', 'index': 3, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/ROMANCE.png?dt=2022022201', 'code': 'ROMANCE'}, {'name': 'Slice of life', 'index': 4, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/SLICE_OF_LIFE.png?dt=2022022201', 'code': 'SLICE_OF_LIFE'}, {'name': 'Sci-fi', 'index': 5, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/SF.png?dt=2022022201', 'code': 'SF'}, {'name': 'Drama', 'index': 6, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/DRAMA.png?dt=2022022201', 'code': 'DRAMA'}, {'name': 'Short story', 'index': 7, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/SHORT_STORY.png?dt=2022022201', 'code': 'SHORT_STORY'}, {'name': 'Action', 'index': 8, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/ACTION.png?dt=2022022201', 'code': 'ACTION'}, {'name': 'Superhero', 'index': 9, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/SUPER_HERO.png?dt=2022022201', 'code': 'SUPER_HERO'}, {'name': 'Heart-warming', 'index': 10, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/HEARTWARMING.png?dt=2022022201', 'code': 'HEARTWARMING'}, {'name': 'Thriller', 'index': 11, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/THRILLER.png?dt=2022022201', 'code': 'THRILLER'}, {'name': 'Horror', 'index': 12, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/HORROR.png?dt=2022022201', 'code': 'HORROR'}, {'name': 'Post-Apocalyptic', 'index': 13, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/POST_APOCALYPTIC.png?dt=2022022201', 'code': 'POST_APOCALYPTIC'}, {'name': 'Zombies', 'index': 14, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/ZOMBIES.png?dt=2022022201', 'code': 'ZOMBIES'}, {'name': 'School', 'index': 15, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/SCHOOL.png?dt=2022022201', 'code': 'SCHOOL'}, {'name': 'Supernatural', 'index': 16, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/SUPERNATURAL.png?dt=2022022201', 'code': 'SUPERNATURAL'}, {'name': 'Animals', 'index': 17, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/ANIMALS.png?dt=2022022201', 'code': 'ANIMALS'}, {'name': 'Crime/Mystery', 'index': 18, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/CRIME_MYSTERY.png?dt=2022022201', 'code': 'CRIME_MYSTERY'}, {'name': 'Historical', 'index': 19, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/HISTORICAL.png?dt=2022022201', 'code': 'HISTORICAL'}, {'name': 'Informative', 'index': 20, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/TIPTOON.png?dt=2022022201', 'code': 'TIPTOON'}, {'name': 'Sports', 'index': 21, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/SPORTS.png?dt=2022022201', 'code': 'SPORTS'}, {'name': 'Inspirational', 'index': 22, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/INSPIRATIONAL.png?dt=2022022201', 'code': 'INSPIRATIONAL'}, {'name': 'All Ages', 'index': 23, 'iconImage': 'https://webtoons-static.pstatic.net/image/genre/challenge_icon/ALL_AGES.png?dt=2022022201', 'code': 'ALL_AGES'}], 'count': 24}}}}
+        resp = requests.get(self._defaulturl+"canvas/genres/list", headers=self._defaultheader, params={"language":self.lang})
+        print(resp.json())
+        print(resp.headers)
+        self._latestresp = resp
+        return resp.json()
+    def doSearch(self,query:str,start=0,size=20,type="canvas") -> search:
+        """search webtoon for comics"""
+        if self.testmode:
+            print("doSearch() does not support test mode!")
+        if self.verbose:
+            print("doSearch()")
+        assert not self.testmode
+        assert start > -1
+        assert size <= 20
+        assert type in ["canvas","originals"]
+        if type == "originals":
+            raise NotImplementedError("originals are not supported at the moment ):")
+        params = {"query": query,"startIndex": start,"pageSize": size,"language": self.lang}
+        resp = requests.get(self._defaulturl+type+"/search", headers=self._defaultheader, params=params).json()["message"] #really good practice totally
+        if self.verbose:
+            print(resp)
+        items = []
+        for i in resp["result"]["challengeSearch"]["titleList"]:
+            items.append(comic(i))
+        out = search(query,start,size,self.lang,type,resp["result"]["challengeSearch"]["total"],items,resp)
+        self._latestresp = resp
+        return out
+
+    def listComics(self,type) -> list[comic]:
+        """list EVERY comic in a type as a list
+        please only use this if you know what your doing!"""
+        assert not self.testmode
+        assert type in ["canvas","originals"]
+        params = {"language": self.lang}
+        # time.sleep(1)
+        # return []
+        if self.verbose:
+            print("listComics...")
+        # print(self.cache.listedCanvas and type == "canvas")
+        # print(self.cache.listedOriginals and type == "originals")
+        if ((not self.cache.listedOriginals) and type == "originals") or type == "canvas":
+            resp = requests.get(self._defaulturl+type+"/titles/list", headers=self._defaultheader, params=params).json()["message"] #really good practice totally
+            
+            #trust me you dont want to print this
+            # if self.verbose:
+            #     print(resp)
+            
+            items = []
+            for i in resp["result"]["titleList"]["titles"]:
+                items.append(comic(i,type=type))
+            self.cache.addComicToCache(items,type)
+            if type == "canvas":
+                self.cache.listedCanvas = True
+            else:
+                self.cache.listedOriginals = True
+            out = items
+            self._latestresp = resp
+            if type == "canvas":
+                self.cache._comicCanvasCache
+            if self.verbose:
+                print("done!")
+            return out
+        else:
+            print("already fetched!")
+            if type == "canvas":
+                return self.cache._comicCanvasCache
+            else:
+                return self.cache._comicOriginalsCache
+                
+    
+    def getComic(self,id:int|str,type="canvas") -> comic:
+        assert not self.testmode
+        assert type in ["canvas","originals"]
+        
+        if type == "canvas":
+            print(self._requestsSession.cookies)
+            wp = getWebPage(BASECOMICURL+str(id),self._requestsSession)
+            soup = bs4.BeautifulSoup(wp,"html.parser")
+            comicName = soup.find("meta",{"property":"og:title"}).attrs["content"]
+            
+            comicJson = {"title":comicName,
+                         "titleNo":69,
+                         "author":"mr author guy/girl",
+                         "thumbnail":"temp thumbnail",
+                         "ageGradeNotice":False,
+                         "totalServiceEpisodeCount":1}
+            
+            print(comicName)
+            
+            print(self._requestsSession.cookies)
+        
+            return comic(comicJson)
+    
+        if id.__class__ != int:
+            id = int(id) #fixes cache not working if id is an str
+        cachedComic = self.cache.checkComic(id,type)
+        print(cachedComic)
+        if cachedComic:
+            return cachedComic
+        else:
+            resp = requests.get(self._defaulturl+type+"/titles/get-info",{"titleNo":id,"language":self.lang},headers=self._defaultheader).json()["message"]
+            print(resp)
+            self.cache.addComicToCache([comic(resp["result"]["titleInfo"])],type)
+            return comic(resp["result"]["titleInfo"])
+    
+    def loadFullEpisode(self,oldEpisode:partialEpisode) -> episode:
+        
+
+        params = {"titleNo":oldEpisode.parentID,"episodeNo":oldEpisode.episodeNO,"language":self.lang}
+
+        resp = requests.get(self._defaulturl+oldEpisode.type+"/episodes/get-info", headers=self._defaultheader, params=params)
+        self._latestresp = resp
+        return episode(resp.json()["message"]["result"]["episodeInfo"],oldEpisode.parentID)
+    
+    def getEpisodes(self,comicToUse:comic|int,startIndex=0,size=20,typeOf:str="canvas"):
+        """returns episodes (reminder that episodes are returned in reverse order (last to first) so be carefulas)
+        (note: currently dosent support cacheing)"""
+        assert size <= 20
+        assert startIndex >= 0
+        assert type(comicToUse) in [comic,int]
+        assert typeOf in ["canvas","originals"]
+        if type(comicToUse) == comic:
+            comicid = comicToUse.id
+            typeOf  = comicToUse.type
+        else:
+            comicid = comicToUse
+        params = {"titleNo":comicid,"startIndex":startIndex,"language":self.lang,"pageSize":size}
+        req = requests.get(self._defaulturl+typeOf+"/episodes/list",params,headers=self._defaultheader)
+        self._latestresp = req
+        epl = episodeList(req.json()["message"]["result"]["episodeList"],typeOf)
+        self.cache.addEpisodeToCache(epl)
+        try:
+            return epl
+        except KeyError:
+            # print("error with json!:")
+            # print(req.json())
+            raise KeyError("error with json",req.json(),f"type: {typeOf}")
+        # "Something went wrong, we know it and trying to fix this Rapidly" - rapidapi 2024
+
+class oldwebtoonapi():
     def __init__(self,token:str,lang="en",testMode=False,verbose=True) -> None:
         """creates a webtoon api class with your token and languedge (me when i cant spell)
         (testmode uses preset values for testing)"""

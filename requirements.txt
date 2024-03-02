@@ -2,3 +2,4 @@ flet
 requests
 flet_navigator
 Whoosh
+beautifulsoup4
