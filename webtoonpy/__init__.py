@@ -11,7 +11,7 @@ import bs4
 import datetime
 import re
 
-__version__ = '0.0.3'
+__version__ = '0.1.0'
 BASECOMICURLS = ["https://www.webtoons.com/en/canvas/barry-and-bobby/list?title_no=",
                  "https://www.webtoons.com/en/thriller/dead-but-not-gone/list?title_no=",
                  "https://www.webtoons.com/en/canvas/the-little-trashmaid/new-dock/viewer?title_no={TITLENO}&episode_no={EPISODENO}"] #for scraping
