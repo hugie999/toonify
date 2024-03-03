@@ -85,6 +85,11 @@ class homePage():
         for i in raw['challengeHomeRecommendTitleList']:
             self.recTitleList.append(comic(i['titleInfo'],"canvas",i['linkTitleNo']))
 
+class episodeImages():
+    def __init__(self) -> None:
+        """the images for a webtoon episode
+        along with some other metadata maybey"""
+
 class oldEpisode():
     def __init__(self,raw:dict,comicId:int) -> None:
         """its like the other episode class but with images
@@ -496,6 +501,7 @@ class webtoonScraper():
         
         if typeOf == "canvas":
             wpPre = getWebPage(BASECOMICURLS[0]+str(comicid)+f"&page={page}")
+            self.spamWait()
             wp    = getWebPage(wpPre[1]+f"&page={page}")[0]
             # print(wp)
             soup = bs4.BeautifulSoup(wp,"html.parser")
@@ -520,6 +526,7 @@ class webtoonScraper():
             return episodes
         else:
             wpPre = getWebPage(BASECOMICURLS[1]+str(comicid)+f"&page={page}")
+            self.spamWait()
             wp    = getWebPage(wpPre[1]+f"&page={page}")[0]
             print(BASECOMICURLS[1]+str(comicid)+f"&page={page}")
             # print(wp)
