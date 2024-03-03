@@ -12,3 +12,5 @@ print(com.__dict__)
 eps = (api.getEpisodes(com,1))
 for i in eps:
     print(i.__dict__)
+
+print(api.listComics())

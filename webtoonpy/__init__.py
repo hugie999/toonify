@@ -9,13 +9,14 @@ import base64
 import time
 import bs4
 import datetime
+import re
 
 __version__ = '0.0.3'
 BASECOMICURLS = ["https://www.webtoons.com/en/canvas/barry-and-bobby/list?title_no=",
                  "https://www.webtoons.com/en/thriller/dead-but-not-gone/list?title_no=",
                  "https://www.webtoons.com/en/canvas/the-little-trashmaid/new-dock/viewer?title_no={TITLENO}&episode_no={EPISODENO}"] #for scraping
-"""base comic urls for scrapers [1] = canvas (barry and bobby) [2] = original (dead 🅱️ut not gone), 
-    3 = episode (canvas) has two formats: 'TITLENO' and 'EPISODENO' pretty self explanitory"""
+"""base comic urls for scrapers [0] = canvas (barry and bobby) [1] = original (dead 🅱️ut not gone), 
+    [2] = episode (canvas) has two formats: 'TITLENO' and 'EPISODENO' pretty self explanitory"""
 # def createComicJson(name:str,id:int,author:str) -> dict:
 #     """allows creation of comic() classes without request json"""
 
@@ -122,7 +123,29 @@ class headerInfo():
         return f"headerInfo -> (used: {self.requestsUsed}, remaining: {self.remaining}, avalible: {self.totalAvalible}) <-"
 
 class partialComic():
-    def __init__(self) -> None:
+    def __init__(self,json:dict) -> None:
+        """returned by listComics
+        thease dont have as much metadata as the normal comic class"""
+        # <li>
+        #     <a href="https://www.webtoons.com/en/comedy/cursed-princess-club/list?title_no=1537" class="daily_card_item NPI=a:list,i=1537,r=1,g:en_en" data-title-unsuitable-for-children="false" data-title-unsuitable-for-children-skin="harmful_white_skin1">
+        #         <img src="https://webtoon-phinf.pstatic.net/20190226_224/1551120711003gUe7B_JPEG/10_EC8DB8EB84A4EC9DBC_ipad.jpg?type=a138" width="138" height="138" alt="Cursed Princess Club">
+        #         <p class="genre g_comedy">Comedy</p>
+        #         <div class="info">
+        #             <p class="subj">Cursed Princess Club</p>
+        #             <p class="author">LambCat</p>
+        #             <p class="icon_area"></p>
+        #         </div>
+        #         <p class="grade_area"><span class="ico_like3">like</span><em class="grade_num">23.6M</em></p>
+        #     </a>
+        # </li>
+        self.genre:str     = json["genre"]
+        self.author:str    = json["author"]
+        self.name:str      = json["name"]
+        self.likes:int     = json["likes"]
+        self.id:int        = json["id"]
+        self.thumbNail:str = json["thumb"]
+        self.isNSFW:bool   = json["isNSFW"]
+        
         pass
 
 #its up here cus it returns a header info (sorry for the inconsistant placeing)
@@ -356,44 +379,51 @@ class webtoonScraper():
         """list EVERY comic in the originals section as a list
         please only use this if you know what your doing!"""
         assert not self.testmode
-        assert type in ["canvas","originals"]
-        params = {"language": self.lang}
-        # time.sleep(1)
-        # return []
-        if self.verbose:
-            print("listComics...")
-        # print(self.cache.listedCanvas and type == "canvas")
-        # print(self.cache.listedOriginals and type == "originals")
-        if ((not self.cache.listedOriginals) and type == "originals") or type == "canvas":
-            resp = requests.get(self._defaulturl+type+"/titles/list", headers=self._defaultheader, params=params).json()["message"] #really good practice totally
-            
-            #trust me you dont want to print this
-            # if self.verbose:
-            #     print(resp)
-            
-            items = []
-            for i in resp["result"]["titleList"]["titles"]:
-                items.append(comic(i,type=type))
-            self.cache.addComicToCache(items,type)
-            if type == "canvas":
-                self.cache.listedCanvas = True
-            else:
-                self.cache.listedOriginals = True
-            out = items
-            self._latestresp = resp
-            if type == "canvas":
-                self.cache._comicCanvasCache
-            if self.verbose:
-                print("done!")
-            return out
-        else:
-            print("already fetched!")
-            if type == "canvas":
-                return self.cache._comicCanvasCache
-            else:
-                return self.cache._comicOriginalsCache
-                
-    
+        wp = getWebPage("https://www.webtoons.com/en/originals")[0]
+        #<ul class="daily_card">
+        soup = bs4.BeautifulSoup(wp)
+        pot:bs4.Tag #get it like soup pot... please laugh
+        bowl:bs4.Tag
+        comics:list[partialComic] = []
+        for pot in soup.find_all("ul",{"class":"daily_card"}):
+            print(f"{type(pot)}")
+            for bowl in pot.find_all("li"):
+                print(type(bowl))
+                # <li>
+                #     <a href="https://www.webtoons.com/en/comedy/cursed-princess-club/list?title_no=1537" class="daily_card_item NPI=a:list,i=1537,r=1,g:en_en" data-title-unsuitable-for-children="false" data-title-unsuitable-for-children-skin="harmful_white_skin1">
+                #         <img src="https://webtoon-phinf.pstatic.net/20190226_224/1551120711003gUe7B_JPEG/10_EC8DB8EB84A4EC9DBC_ipad.jpg?type=a138" width="138" height="138" alt="Cursed Princess Club">
+                #         <p class="genre g_comedy">Comedy</p>
+                #         <div class="info">
+                #             <p class="subj">Cursed Princess Club</p>
+                #             <p class="author">LambCat</p>
+                #             <p class="icon_area"></p>
+                #         </div>
+                #         <p class="grade_area"><span class="ico_like3">like</span><em class="grade_num">23.6M</em></p>
+                #     </a>
+                # </li>
+                #===to get===
+                # ["author"]
+                # ["genre"]
+                # ["name"]
+                # ["likes"]
+                # ["id"]
+                # ["thumb"]
+                # ["isNSFW"]
+                print(partialComic(
+                    {"genre":bowl.find("p").string,
+                     "author":bowl.find("p",{"class":"author"}).string,
+                     "name":bowl.find("p",{"class":"subj"}).string,
+                     "likes":strToInt(
+                         bowl.find("p",{"class":"grade_area"}).find("em").string
+                         ),
+                     "id":int(re.findall(
+                         "i=[0-9]*",bowl.find("a").attrs["class"])[0].removeprefix("i=")),
+                     "thumb":bowl.find("img").src,
+                     "isNSFW":{"true":True,"false":False}[bowl.find("a").attrs["data-title-unsuitable-for-children"]]
+                     }
+                )).__dict__
+                quit()
+
     def getComic(self,id:int|str|None=None,url:str|None="",type="canvas") -> comic: #done!
         assert not self.testmode
         assert type in ["canvas","originals"]
