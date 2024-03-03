@@ -19,19 +19,21 @@ BASECOMICURLS = ["https://www.webtoons.com/en/canvas/barry-and-bobby/list?title_
 # def createComicJson(name:str,id:int,author:str) -> dict:
 #     """allows creation of comic() classes without request json"""
 
-def strToInt(x):
+def strToInt(x:str):
     if type(x) == float or type(x) == int:
-        return x
+        return x.replace(",","")
     if 'K' in x:
         if len(x) > 1:
-            return int(float(x.replace('K', '')) * 1000)
+            return int(float(x.replace('K', '').replace(",","")) * 1000)
         return 1000
     if 'M' in x:
         if len(x) > 1:
-            return int(float(x.replace('M', '')) * 1000000)
+            return int(float(x.replace('M', '').replace(",","")) * 1000000)
         return 1000000
     if 'B' in x:
-        return int(float(x.replace('B', '')) * 1000000000)
+        return int(float(x.replace('B', '').replace(",","")) * 1000000000)
+    else:
+        return int(float(x.replace(",","")))
     return 0
 """THANK YOU SO F#CKING MUCH PERSON ON STACK OVERFLOW (link : https://stackoverflow.com/a/41028390"""
 
@@ -119,7 +121,7 @@ class partialComic():
 
 #its up here cus it returns a header info (sorry for the inconsistant placeing)
 class episode():
-    def __init__(self,raw:dict,comicId) -> None:
+    def __init__(self,raw:dict) -> None:
         """basically just episode class"""
         self._json = raw
         self.parentID:int    = raw["titleNo"]
@@ -189,7 +191,7 @@ class webtoonCache():
         """a cache of api data so you dont have to use 50 api requests😎
         ps: dont make this yourself this is just for webtoonapi() to make"""
         
-        self._partialEpisodeCache:list[partialEpisode] = []
+        # self._partialEpisodeCache:list[partialEpisode] = []
         self._comicOriginalsCache:list[episode]        = []
         self._episodeCacheCanvas:list[episode]         = []
         # self._comicOriginalsCache:list[comic]        = []
@@ -199,8 +201,8 @@ class webtoonCache():
         self._genresCache:dict                         = None
         self.listedOriginals                           = False
         if rawJson:
-            for i in rawJson["parEpisode"]:
-                self._partialEpisodeCache.append(partialEpisode(i))
+            # for i in rawJson["parEpisode"]:
+            #     self._partialEpisodeCache.append(partialEpisode(i))
             # for i in rawJson["comicOriginals"]:
             #     self._comicOriginalsCache.append(episode(i[0],i[1]))
             # for i in rawJson["comicCanvas"]:
@@ -242,7 +244,7 @@ class webtoonCache():
         return None
     def reset(self):
         self = webtoonCache()
-    def addEpisodeToCache(self,episodes:list[episode]|episodeList):
+    def addEpisodeToCache(self,episodes:list[episode]):
         raise NotImplementedError("episode cacheing isnt done yet!")
         if type(episodes) == list:
             self._episodeCache += episodes
@@ -405,9 +407,9 @@ class webtoonScraper():
             thumbnailURL = soup.find("img").attrs["src"]
             episodeCount = soup.find("li",attrs={"class":"_episodeItem"}).attrs["data-episode-no"]
             pageCount    = 0 #class="pg_next"
-            summary  = soup.find("a",attrs={"class","summary"})
+            summary  = soup.find("p",attrs={"class","summary"}).contents[0]
             raitingsArea = soup.find("ul",attrs={"class":"grade_area"}).find_all("em",attrs={"class":"cnt"})
-            print(raitingsArea[0])
+            # print(raitingsArea[0])
             
             # print(thumbnailURL)
             comicJson = {"title":comicName,
@@ -428,12 +430,12 @@ class webtoonScraper():
             comicName = soup.find("meta",{"property":"og:title"}).attrs["content"]
             comicAuthorRaw = soup.find("a",{"class":"author"})
             comicAuthor = {"name":comicAuthorRaw.contents[0],"link":comicAuthorRaw.attrs["href"]}
-            thumbnailURL = soup.find("img").attrs["src"]
+            thumbnailURL = soup.find("meta",{"property":"og:image"}).attrs["content"]
             episodeCount = soup.find("li",attrs={"class":"_episodeItem"}).attrs["data-episode-no"]
             pageCount    = 0 #class="pg_next"
-            summary  = soup.find("a",attrs={"class","summary"})
+            summary  = soup.find("p",attrs={"class","summary"}).contents[0]
             raitingsArea = soup.find("ul",attrs={"class":"grade_area"}).find_all("em",attrs={"class":"cnt"})
-            print(raitingsArea[0])
+            # print(raitingsArea[0])
             
             # print(thumbnailURL)
             comicJson = {"title":comicName,
@@ -447,7 +449,7 @@ class webtoonScraper():
                          "views":strToInt(raitingsArea[0].contents[0].replace(",","")),
                          "subscribers":strToInt(raitingsArea[1].contents[0].replace(",","")),
                          "stars":float(raitingsArea[2].contents[0])}
-        
+            return comic(comicJson,"originals")
         return
         
         if id.__class__ != int:
@@ -492,22 +494,51 @@ class webtoonScraper():
             comicid = comicToUse
         
         if typeOf == "canvas":
-            wp = getWebPage(BASECOMICURLS[1]+comicid)
+            wp = getWebPage(BASECOMICURLS[0]+str(comicid)+f"&page={page}")
+            # print(wp)
             soup = bs4.BeautifulSoup(wp,"html.parser")
-            
-            return {"titleNo"}
-        # params = {"titleNo":comicid,"startIndex":startIndex,"language":self.lang,"pageSize":size}
-        # req = requests.get(self._defaulturl+typeOf+"/episodes/list",params,headers=self._defaultheader)
-        # self._latestresp = req
-        # epl = episodeList(req.json()["message"]["result"]["episodeList"],typeOf)
-        # self.cache.addEpisodeToCache(epl)
-        # try:
-        #     return epl
-        # except KeyError:
-        #     # print("error with json!:")
-        #     # print(req.json())
-        #     raise KeyError("error with json",req.json(),f"type: {typeOf}")
-        # # "Something went wrong, we know it and trying to fix this Rapidly" - rapidapi 2024
+            episodes = []
+            bowl:bs4.Tag
+            # print(soup.find("li",{"class":"_episodeItem"}))
+            for bowl in soup.find("ul",{"id":"_listUl"}).findChildren("li"): #hehe soup bowl
+                # print(bowl)
+                # print(bowl.find("span",{"class":"date"}))
+                json = (
+                    {"titleNo":comicid,
+                     "type":typeOf,
+                     "episodeNo":int(bowl.attrs["data-episode-no"]),
+                     "episodeTitle":bowl.find("span",{"class":"subj"}).contents[0].content,
+                     "thumbnailImageUrl":bowl.find("span",{"class":"thmb"}).contents[0],
+                     "publishedDate":str(bowl.find("span",{"class":"date"}).contents[0]).replace("\n","").replace("\t",""),
+                     "likeCount":strToInt(bowl.find("span",{"class":"like_area _likeitArea"}).contents[1])
+                    }
+                )
+                # print(json)
+                episodes.append(episode(json))
+            return episodes
+        else:
+            wp = getWebPage(BASECOMICURLS[1]+str(comicid)+f"&page={page}")
+            # print(wp)
+            soup = bs4.BeautifulSoup(wp,"html.parser")
+            episodes = []
+            bowl:bs4.Tag
+            # print(soup.find("li",{"class":"_episodeItem"}))
+            for bowl in soup.find("ul",{"id":"_listUl"}).findChildren("li"): #hehe soup bowl
+                # print(bowl)
+                # print(bowl.find("span",{"class":"date"}))
+                json = (
+                    {"titleNo":comicid,
+                     "type":typeOf,
+                     "episodeNo":int(bowl.attrs["data-episode-no"]),
+                     "episodeTitle":bowl.find("span",{"class":"subj"}).contents[0].content,
+                     "thumbnailImageUrl":bowl.find("span",{"class":"thmb"}).contents[0],
+                     "publishedDate":str(bowl.find("span",{"class":"date"}).contents[0]).replace("\n","").replace("\t",""),
+                     "likeCount":strToInt(bowl.find("span",{"class":"like_area _likeitArea"}).contents[1])
+                    }
+                )
+                # print(json)
+                episodes.append(episode(json))
+            return episodes
 
     def spamWait(self):
         """wait so that we dont spam webtoon"""

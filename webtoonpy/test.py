@@ -2,5 +2,13 @@ import __init__ as webtoonpy
 
 api = webtoonpy.webtoonScraper()
 print(webtoonpy.strToInt("1.5M"))
-print(api.getComic(url="https://www.webtoons.com/en/thriller/dead-but-not-gone/list?title_no=4838",type="originals").previewImg)
+com = (api.getComic(url="https://www.webtoons.com/en/canvas/the-little-trashmaid/list?title_no=300138&page=1",type="canvas"))
+print(com)
+for i in api.getEpisodes(com):
+    print(i.__dict__)
 
+com = api.getComic(url="https://www.webtoons.com/en/slice-of-life/as-per-usual/list?title_no=599",type="originals")
+print(com.__dict__)
+eps = (api.getEpisodes(com))
+for i in eps:
+    print(i.__dict__)
