@@ -44,9 +44,10 @@ def loadImage(url:str) -> bytes:
     #fuck you webtoon
     resp = requests.get(newurl,headers={'User-agent': 'Mozilla/5.0 (Linux; Android 8.1.0; Mi MIX 2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Mobile Safari/537.36','Referer':'http://m.webtoons.com/'})# <- teh secret sauce
     return resp.content
-def getWebPage(url) -> str:
-    resp = requests.get(url)
-    return resp.content.decode()
+def getWebPage(url) -> list[str]:
+    """returns the content of the page and the final url in a list"""
+    resp = requests.get(url,allow_redirects=True)
+    return [resp.content.decode(),resp.url]
 
 class webtoonImage():
     def __init__(self,raw:dict) -> None:
@@ -307,11 +308,11 @@ class webtoonScraper():
         #     "X-RapidAPI-Key": token,
         #     "X-RapidAPI-Host": "webtoon.p.rapidapi.com"}
         self._defaulturl = "https://webtoon.p.rapidapi.com/"
-    def getRequestAmount(self) -> headerInfo:
+    def getRequestAmount(self) -> None:
+        """returns none
+        will be removed eventually"""
         return None
-        """idfk what to name its how many requests you have used (cus its limuted)"""
-        assert self._latestresp
-        return headerInfo(int(self._latestresp.headers["X-RateLimit-Requests-Remaining"]),int(self._latestresp.headers["X-RateLimit-Requests-Limit"]))
+    
     def getGenres(self) -> dict:
         if self.verbose:
             print("getGenres")
@@ -346,7 +347,7 @@ class webtoonScraper():
         self._latestresp = resp
         return out
 
-    def listComics(self) -> list[comic]:
+    def listComics(self) -> list[comic]: 
         """list EVERY comic in the originals section as a list
         please only use this if you know what your doing!"""
         assert not self.testmode
@@ -388,7 +389,7 @@ class webtoonScraper():
                 return self.cache._comicOriginalsCache
                 
     
-    def getComic(self,id:int|str|None=None,url:str|None="",type="canvas") -> comic:
+    def getComic(self,id:int|str|None=None,url:str|None="",type="canvas") -> comic: #done!
         assert not self.testmode
         assert type in ["canvas","originals"]
         assert url or id
@@ -399,7 +400,7 @@ class webtoonScraper():
             id = int(id) #fixes cache not working if id is an str
         if type == "canvas":
             # print(self._requestsSession.cookies)
-            wp = getWebPage(BASECOMICURLS[0]+str(id))
+            wp = getWebPage(BASECOMICURLS[0]+str(id))[0]
             soup = bs4.BeautifulSoup(wp,"html.parser")
             comicName = soup.find("meta",{"property":"og:title"}).attrs["content"]
             comicAuthorRaw = soup.find("a",{"class":"author"})
@@ -425,7 +426,7 @@ class webtoonScraper():
                          "stars":float(raitingsArea[2].contents[0])}
             return comic(comicJson)
         else:
-            wp = getWebPage(BASECOMICURLS[1]+str(id))
+            wp = getWebPage(BASECOMICURLS[1]+str(id))[0]
             soup = bs4.BeautifulSoup(wp,"html.parser")
             comicName = soup.find("meta",{"property":"og:title"}).attrs["content"]
             comicAuthorRaw = soup.find("a",{"class":"author"})
@@ -480,7 +481,7 @@ class webtoonScraper():
         self._latestresp = resp
         return episode(resp.json()["message"]["result"]["episodeInfo"],oldEpisode.parentID)
     
-    def getEpisodes(self,comicToUse:comic|int,page:int=1,typeOf:str="canvas") -> list[episode]:
+    def getEpisodes(self,comicToUse:comic|int,page:int=1,typeOf:str="canvas") -> list[episode]: #done!
         """returns episodes (reminder that episodes are returned in reverse order (last to first) so be carefulas)
         (note: currently dosent support cacheing)
         (note2: page starts at 1 and not 0)"""
@@ -494,7 +495,8 @@ class webtoonScraper():
             comicid = comicToUse
         
         if typeOf == "canvas":
-            wp = getWebPage(BASECOMICURLS[0]+str(comicid)+f"&page={page}")
+            wpPre = getWebPage(BASECOMICURLS[0]+str(comicid)+f"&page={page}")
+            wp    = getWebPage(wpPre[1]+f"&page={page}")[0]
             # print(wp)
             soup = bs4.BeautifulSoup(wp,"html.parser")
             episodes = []
@@ -517,7 +519,9 @@ class webtoonScraper():
                 episodes.append(episode(json))
             return episodes
         else:
-            wp = getWebPage(BASECOMICURLS[1]+str(comicid)+f"&page={page}")
+            wpPre = getWebPage(BASECOMICURLS[1]+str(comicid)+f"&page={page}")
+            wp    = getWebPage(wpPre[1]+f"&page={page}")[0]
+            print(BASECOMICURLS[1]+str(comicid)+f"&page={page}")
             # print(wp)
             soup = bs4.BeautifulSoup(wp,"html.parser")
             episodes = []
