@@ -41,7 +41,10 @@ def strToInt(x:str):
 
 def loadImage(url:str) -> bytes:
     "this litterally returns a png so be prepared"
-    newurl = "https://webtoon-phinf.pstatic.net/"+url
+    if url.startswith("https://webtoon-phinf.pstatic.net/"):
+        newurl = url
+    else:
+        newurl = "https://webtoon-phinf.pstatic.net/"+url
     #fuck you webtoon
     resp = requests.get(newurl,headers={'User-agent': 'Mozilla/5.0 (Linux; Android 8.1.0; Mi MIX 2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Mobile Safari/537.36','Referer':'http://m.webtoons.com/'})# <- teh secret sauce
     return resp.content
@@ -375,13 +378,13 @@ class webtoonScraper():
         self._latestresp = resp
         return out
 
-    def listComics(self) -> list[comic]: 
+    def listComics(self) -> list[comic]: #DONE!!!!!
         """list EVERY comic in the originals section as a list
         please only use this if you know what your doing!"""
         assert not self.testmode
         wp = getWebPage("https://www.webtoons.com/en/originals")[0]
         #<ul class="daily_card">
-        soup = bs4.BeautifulSoup(wp)
+        soup = bs4.BeautifulSoup(wp,features="html.parser")
         pot:bs4.Tag #get it like soup pot... please laugh
         bowl:bs4.Tag
         comics:list[partialComic] = []
@@ -409,6 +412,7 @@ class webtoonScraper():
                 # ["id"]
                 # ["thumb"]
                 # ["isNSFW"]
+                # print(bowl.find("a").attrs["class"])
                 print(partialComic(
                     {"genre":bowl.find("p").string,
                      "author":bowl.find("p",{"class":"author"}).string,
@@ -416,12 +420,12 @@ class webtoonScraper():
                      "likes":strToInt(
                          bowl.find("p",{"class":"grade_area"}).find("em").string
                          ),
-                     "id":int(re.findall(
-                         "i=[0-9]*",bowl.find("a").attrs["class"])[0].removeprefix("i=")),
-                     "thumb":bowl.find("img").src,
+                     "id":int(re.findall
+                              ("i=[0-9]*",bowl.find("a").attrs["class"][1])[0].removeprefix("i=")),
+                     "thumb":bowl.find("img").attrs["src"],
                      "isNSFW":{"true":True,"false":False}[bowl.find("a").attrs["data-title-unsuitable-for-children"]]
                      }
-                )).__dict__
+                ).__dict__)
                 quit()
 
     def getComic(self,id:int|str|None=None,url:str|None="",type="canvas") -> comic: #done!
