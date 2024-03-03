@@ -293,7 +293,7 @@ class webtoonCache():
         return retvar
 
 class webtoonScraper():
-    def __init__(self,lang="en",testMode=False,verbose=True) -> None:
+    def __init__(self,testMode=False,verbose=True) -> None:
         """creates a webtoon api class with your token and languedge (me when i cant spell)
         (testmode uses preset values for testing)"""
         # if not token:
@@ -301,7 +301,7 @@ class webtoonScraper():
         # assert token
         self._latestresp:requests.Response = None
         self.token = None
-        self.lang  = lang
+        self.lang  = "en"
         self.testmode = testMode
         self.verbose = verbose
         self.useWaitTimer = True
